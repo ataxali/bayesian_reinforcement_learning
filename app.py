@@ -18,7 +18,7 @@ IS_TK_INIT = False
 root = None
 canvas_count = 0
 
-DRAW_MULTIPLIER = 5
+DRAW_MULTIPLIER = 20
 DRAW_X_PADDING = 0.2
 DRAW_Y_PADDING = 0.2
 
@@ -57,7 +57,7 @@ class GameGraphics(threading.Thread):
 
 
 class App(GameGraphics, GameListener):
-    FRAME_DELAY_SEC = 0.5
+    FRAME_DELAY_SEC = 0
 
     def __init__(self, nrows, ncols):
         super(App, self).__init__()
@@ -91,7 +91,8 @@ class App(GameGraphics, GameListener):
                 self.canvas.create_rectangle(i*DRAW_MULTIPLIER + self.x_offset,
                                              j*DRAW_MULTIPLIER + self.y_offset,
                                              (i+1)*DRAW_MULTIPLIER + self.x_offset,
-                                             (j+1)*DRAW_MULTIPLIER + self.y_offset)
+                                             (j+1)*DRAW_MULTIPLIER + self.y_offset,
+                                             fill="white")
 
     def __fill_cells(self, rows, cols, color):
         for i in range(len(rows)):

@@ -12,7 +12,7 @@ class InputHandler(object):
 
 
 class KeyInputHandler(InputHandler):
-    keys = enum.Enum('keys', 'UP DOWN LEFT RIGHT')
+    keys = enum.Enum('keys', 'UP DOWN LEFT RIGHT ROTATE_L ROTATE_R PASS')
 
     def __init__(self, log):
         self.log = log
@@ -26,14 +26,20 @@ class KeyInputHandler(InputHandler):
         # put into queue, with blocking enabled
         for input in inputs:
             next_key = None
-            if input[0] is 'u':
+            if input == 'up':
                 next_key = self.keys.UP
-            elif input[0] is 'd':
+            elif input == 'down':
                 next_key = self.keys.DOWN
-            elif input[0] is 'l':
+            elif input == 'left':
                 next_key = self.keys.LEFT
-            elif input[0] is 'r':
+            elif input == 'right':
                 next_key = self.keys.RIGHT
+            elif input == 'rr':
+                next_key = self.keys.ROTATE_R
+            elif input == 'rl':
+                next_key = self.keys.ROTATE_L
+            elif input == 'pass':
+                next_key = self.keys.PASS
             else:
                 logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)
             if next_key is not None:

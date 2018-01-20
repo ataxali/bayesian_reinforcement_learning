@@ -13,8 +13,8 @@ def main():
     keyinput = input_reader.KeyInputHandler(main_console_log)
     _ = input_reader.FileTailer("input.txt", keyinput, main_console_log)
     # initialize graphics (needs to be optional)
-    nrows = 90
-    ncols = 50
+    nrows = 24
+    ncols = 10
     gui = app.App(nrows, ncols)
     # initialize basic game
     game = tetris.Game(nrows=nrows, ncols=ncols, log=[main_file_log, main_console_log], input=keyinput,
