@@ -4,16 +4,12 @@ import logger
 import tetris
 
 def main():
-    # print command line arguments
-    for arg in sys.argv[0:]:
-        print(arg)
-
     # initialize loggers
-    logger.FileLogger(name="file-main", level=logger.Level.DEBUG)
-    logger.ConsoleLogger(name="console-main", level=logger.Level.DEBUG)
-
-    tetris.Game(nrows=100, ncols=30)
-
+    main_file_log = logger.FileLogger(name="file-main", level=logger.Level.DEBUG)
+    main_console_log = logger.ConsoleLogger(name="console-main", level=logger.Level.DEBUG)
+    # initialize basic game
+    tetris.Game(nrows=100, ncols=30, log=[main_file_log, main_console_log])
+    # initialize graphics (needs to be optional)
     app.App()
 
 

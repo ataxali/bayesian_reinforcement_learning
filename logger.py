@@ -4,8 +4,8 @@ import threading
 
 
 # global threading lock for all logging operations
-active_loggers = []
-active_loggers_lk = threading.Lock()
+ACTIVE_LOGGERS = []
+ACTIVE_LOGGERS_LK = threading.Lock()
 
 
 class Level(Enum):
@@ -23,36 +23,51 @@ class Level(Enum):
         return self.name
 
 
-def log(message, level=Level.DEBUG):
+def log(message, level=Level.DEBUG, logger=None):
+    if logger is None:
+        __log_all(message, level)
+    else:
+        with ACTIVE_LOGGERS_LK:
+            if isinstance(logger, list):
+                # in python3 map is lazily evaluated, need list wrapper
+                list(map(lambda lg: __send_to_logger(lg, message, level), logger))
+            else:
+                __send_to_logger(logger, message, level)
 
-    with active_loggers_lk:
-        times_logged = 0
-        for logger in active_loggers:
-            if level is Level.DEBUG:
-                logger.debug(message)
-                times_logged += 1
-            elif level is Level.INFO:
-                logger.info(message)
-                times_logged += 1
-            elif level is Level.ERROR:
-                logger.error(message)
-                times_logged += 1
-            elif level is Level.WARN:
-                logger.warn(message)
-                times_logged += 1
-            elif level is Level.FATAL:
-                logger.fatal(message)
-                times_logged += 1
 
-        if times_logged != len(active_loggers):
-            raise Exception("Failed to log to all loggers! Logged:" + str(times_logged) +
-                            " Active_Loggers:" + str(len(active_loggers)) + " Level:" + str(level))
+def __log_all(message, level):
+    times_logged = 0
+    with ACTIVE_LOGGERS_LK:
+        for logger in ACTIVE_LOGGERS:
+            times_logged += __send_to_logger(logger, message, level)
+
+    if times_logged is not len(ACTIVE_LOGGERS):
+        raise Exception("Failed to write to all loggers!")
+
+
+def __send_to_logger(logger, message, level):
+    log = logger.get_logger()
+    if level is Level.DEBUG:
+        log.debug(message)
+        return 1
+    elif level is Level.INFO:
+        log.info(message)
+        return 1
+    elif level is Level.ERROR:
+        log.error(message)
+        return 1
+    elif level is Level.WARN:
+        log.warn(message)
+        return 1
+    elif level is Level.FATAL:
+        log.fatal(message)
+        return 1
+    return 0
 
 
 def append_active_logger(logger):
-
-    with active_loggers_lk:
-        active_loggers.append(logger)
+    with ACTIVE_LOGGERS_LK:
+        ACTIVE_LOGGERS.append(logger)
 
 
 class FileLogger:
@@ -65,9 +80,18 @@ class FileLogger:
         logger.addHandler(handler)
         logger.setLevel(level.get_value())
         self.logger = logger
-        append_active_logger(logger)
+        self.name = name
+        self.filename = filename
+        append_active_logger(self)
         logger.info('==============================')
         logger.info('Tetris File-Logger Started...')
+
+    def get_logger(self):
+        return self.logger
+
+    def __str__(self):
+        return "Name:" + self.name + "  Filename:" + self.filename + "  logger:"\
+               + str(self.logger)
 
 
 class ConsoleLogger:
@@ -80,9 +104,17 @@ class ConsoleLogger:
         logger.addHandler(handler)
         logger.setLevel(level.get_value())
         self.logger = logger
-        append_active_logger(logger)
+        self.name = name
+        append_active_logger(self)
         logger.info('================================')
         logger.info('Tetris Console-Logger Started...')
+
+    def get_logger(self):
+        return self.logger
+
+    def __str__(self):
+        return "Name:" + self.name + "  Filename:" + "Console" + "  logger:"\
+               + str(self.logger)
 
 
 class DataLogger:

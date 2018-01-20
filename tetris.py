@@ -4,15 +4,16 @@ import logger
 
 class Game:
 
-    def __init__(self, nrows, ncols, prob_override=None, rng_seed=None):
+    def __init__(self, nrows, ncols, log, prob_override=None, rng_seed=None):
         self.board = np.zeros((nrows, ncols))
         self.tile_count = 0
         self.line_count = 0
+        self.log = log
         if prob_override is not None:
             self.tile_generator = TileFactory(probs=prob_override, seed=rng_seed)
         else:
-            self.tile_generator = TileFactory()
-        logger.log("Tetris Board Created...", logger.Level.DEBUG)
+            self.tile_generator = TileFactory(log)
+        logger.log("Tetris Board Created...", logger.Level.DEBUG, self.log)
 
 
 class Tile:
@@ -39,11 +40,12 @@ class Tile:
 
 class TileFactory:
 
-    def __init__(self, probs=[1/7]*7, seed=None):
+    def __init__(self, log, probs=[1/7]*7, seed=None):
         self.probs = np.cumsum(probs)
         self.rng = np.random.RandomState(seed)
+        self.log = log
         logger.log("TileFactory Created With Probs:" + str(["%.2f"%p for p in probs])
-                   , logger.Level.DEBUG)
+                   , logger.Level.DEBUG, self.log)
 
     def __gen_idx(self):
         randn = self.rng.rand()
@@ -54,6 +56,6 @@ class TileFactory:
 
     def get_next_tile(self):
         next_tile_name = Tile.tile_names[self.__gen_idx()]
-        logger.log("Generating tile: " + next_tile_name, logger.Level.DEBUG)
+        logger.log("Generating tile: " + next_tile_name, logger.Level.DEBUG, self.log)
         return Tile(next_tile_name)
 
