@@ -72,10 +72,13 @@ def append_active_logger(logger):
 
 class FileLogger:
 
-    def __init__(self, filename="tetris.log", level=Level.DEBUG, name=''):
+    def __init__(self, filename=".log", level=Level.DEBUG, name='', format=None):
         logger = logging.getLogger("FileLogger" + name)
-        handler = logging.FileHandler(name + "-" + filename)
-        formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s]  %(message)s")
+        handler = logging.FileHandler(name + filename)
+        if format is None:
+            formatter = logging.Formatter("%(asctime)s [%(threadName)s]  %(message)s")
+        else:
+            formatter = logging.Formatter(format)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.setLevel(level.get_value())
@@ -99,7 +102,7 @@ class ConsoleLogger:
     def __init__(self, level=Level.DEBUG, name=''):
         logger = logging.getLogger("ConsoleLogger" + name)
         handler = logging.StreamHandler()
-        formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [logger: " + name + "]  %(message)s")
+        formatter = logging.Formatter("%(asctime)s [%(threadName)s] [logger: " + name + "]  %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.setLevel(level.get_value())
@@ -117,6 +120,6 @@ class ConsoleLogger:
                + str(self.logger)
 
 
-class DataLogger:
-
-    pass
+class DataLogger(FileLogger):
+    def __init__(self, filename="data.log", level=Level.DEBUG, name=''):
+        super(DataLogger, self).__init__(filename, level, name, "%(message)s")

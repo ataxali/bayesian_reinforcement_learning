@@ -1,19 +1,46 @@
 import numpy as np
 import logger
+import threading
 
 
-class Game:
+class Game(threading.Thread):
 
-    def __init__(self, nrows, ncols, log, prob_override=None, rng_seed=None):
+    def __init__(self, nrows, ncols, log, input, listeners=[], prob_override=None, rng_seed=None):
+        super(Game, self).__init__()
+
         self.board = np.zeros((nrows, ncols))
         self.tile_count = 0
         self.line_count = 0
         self.log = log
+        self.input = input
+        self.alive = True
+        self.listeners = listeners
+
         if prob_override is not None:
             self.tile_generator = TileFactory(probs=prob_override, seed=rng_seed)
         else:
             self.tile_generator = TileFactory(log)
-        logger.log("Tetris Board Created...", logger.Level.DEBUG, self.log)
+        logger.log("Tetris Board Created...", logger.Level.INFO, self.log)
+        # start thread in ctor
+        self.start()
+
+    def tick(self):
+        self.board[0, self.tile_count+1] = 1
+        self.tile_count += 1
+        next_input = self.input.get_next_key()
+        logger.log(next_input, logger.Level.DEBUG, self.log)
+
+    def run(self):
+        while self.alive:
+            self.tick()
+            self.__update_listeners()
+
+    def kill(self):
+        self.alive = False
+
+    def __update_listeners(self):
+        for listener in self.listeners:
+            listener.update(self.board)
 
 
 class Tile:
@@ -45,7 +72,7 @@ class TileFactory:
         self.rng = np.random.RandomState(seed)
         self.log = log
         logger.log("TileFactory Created With Probs:" + str(["%.2f"%p for p in probs])
-                   , logger.Level.DEBUG, self.log)
+                   , logger.Level.INFO, self.log)
 
     def __gen_idx(self):
         randn = self.rng.rand()
