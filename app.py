@@ -3,6 +3,7 @@ import threading
 import time
 import queue
 import numpy as np
+import logger
 
 
 # tk needs to behave like a singleton
@@ -56,7 +57,7 @@ class GameGraphics(threading.Thread):
 
 
 class App(GameGraphics, GameListener):
-    FRAME_DELAY_SEC = 1
+    FRAME_DELAY_SEC = 0.5
 
     def __init__(self, nrows, ncols):
         super(App, self).__init__()
@@ -70,29 +71,19 @@ class App(GameGraphics, GameListener):
         self.nrows = nrows
         self.ncols = ncols
         self.drawn_board = np.zeros((nrows, ncols))
-        self.frame_q = queue.Queue()
-        self.__draw_board()
+        self.__draw_default_board()
 
     def update(self, board):
-        self.__push_frame(board)
-        self.draw()
-        #self.drawn_board = board
-
-    def draw(self):
-        next_board = self.frame_q.get(block=True)
-        self.__draw_board(next_board)
-        #
+        self.__draw_board(board)
+        self.drawn_board = np.copy(board)
         time.sleep(self.FRAME_DELAY_SEC)
 
-    def __draw_board(self, board=None):
-        if board is None:
-            self.__draw_default_board()
-        else:
-            diff = np.subtract(self.drawn_board, board)
-            #print(self.drawn_board[0,:])
-            #print(board[0, :])
-            fill_rows, fill_cols = np.where(diff == -1)
-            self.__fill_cells(fill_rows, fill_cols)
+    def __draw_board(self, next_board):
+        diff = np.subtract(self.drawn_board, next_board)
+        fill_rows, fill_cols = np.where(diff == -1)
+        self.__fill_cells(fill_rows, fill_cols, "black")
+        fill_rows, fill_cols = np.where(diff == 1)
+        self.__fill_cells(fill_rows, fill_cols, "white")
 
     def __draw_default_board(self):
         for i in range(0, self.ncols):
@@ -102,15 +93,11 @@ class App(GameGraphics, GameListener):
                                              (i+1)*DRAW_MULTIPLIER + self.x_offset,
                                              (j+1)*DRAW_MULTIPLIER + self.y_offset)
 
-    def __fill_cells(self, rows, cols):
-        #print(rows, cols)
+    def __fill_cells(self, rows, cols, color):
         for i in range(len(rows)):
             self.canvas.create_rectangle(cols[i] * DRAW_MULTIPLIER + self.x_offset,
                                          rows[i] * DRAW_MULTIPLIER + self.y_offset,
                                          (cols[i] + 1) * DRAW_MULTIPLIER + self.x_offset,
                                          (rows[i] + 1) * DRAW_MULTIPLIER + self.y_offset,
-                                         fill='black')
-
-    def __push_frame(self, board):
-        self.frame_q.put(board)
+                                         fill=color)
 

@@ -25,6 +25,8 @@ class Game(threading.Thread):
         self.start()
 
     def tick(self):
+        if self.tile_count > 0:
+            self.board[0, self.tile_count] = 0
         self.board[0, self.tile_count+1] = 1
         self.tile_count += 1
         next_input = self.input.get_next_key()
