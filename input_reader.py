@@ -80,3 +80,27 @@ class FileTailer(threading.Thread):
                    logger.Level.INFO, self.log)
         for line in self.tail():
             self.handler.handle(line)
+
+
+class KeyListener(threading.Thread):
+    # Constants for user input
+    m_keys = {'w': 'up', 's': 'down', 'a': 'left',
+              'd': 'right', 'f': 'rl', 'g': 'rr', ' ': 'pass'}
+
+    def __init__(self, handler, log):
+        super(KeyListener, self).__init__()
+        self.log = log
+        self.alive = True
+        self.handler = handler
+        logger.log("KeyListener created for stdin...", logger.Level.INFO, log)
+        # start the thread in ctor
+        self.start()
+
+    # start() invokes run
+    def run(self):
+        while self.alive:
+            player_move = input()
+            if player_move in self.m_keys:
+                self.handler.handle(self.m_keys[player_move])
+            else:
+                logger.log("Unrecognized input:" + player_move, logger.Level.INFO, self.log)

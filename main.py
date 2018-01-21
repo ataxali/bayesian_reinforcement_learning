@@ -12,6 +12,7 @@ def main():
     # initialize input handler
     keyinput = input_reader.KeyInputHandler(main_console_log)
     _ = input_reader.FileTailer("input.txt", keyinput, main_console_log)
+    _ = input_reader.KeyListener(keyinput, main_console_log)
     # initialize graphics (needs to be optional)
     nrows = 24
     ncols = 10
