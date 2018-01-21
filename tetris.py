@@ -7,7 +7,7 @@ from tile import TileFactory
 
 class Game(threading.Thread):
 
-    def __init__(self, nrows, ncols, log, input, listeners=[], prob_override=None, rng_seed=None):
+    def __init__(self, nrows, ncols, log, input, prob_override=None, rng_seed=None):
         super(Game, self).__init__()
         self.board = np.zeros((nrows, ncols))
         self.nrows = nrows
@@ -17,7 +17,7 @@ class Game(threading.Thread):
         self.log = log
         self.input = input
         self.alive = True
-        self.listeners = listeners
+        self.listeners = []
 
         self.game_state = 0  # 0=waiting for game, 1=waiting for input
         self.tile = None
@@ -85,6 +85,10 @@ class Game(threading.Thread):
 
     def kill(self):
         self.alive = False
+
+    def register_listener(self, listener):
+        self.listeners.append(listener)
+        listener.update(self.board)
 
     def __update_listeners(self):
         for listener in self.listeners:

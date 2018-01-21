@@ -13,13 +13,12 @@ def main():
     keyinput = input_reader.KeyInputHandler(main_console_log)
     _ = input_reader.FileTailer("input.txt", keyinput, main_console_log)
     _ = input_reader.KeyListener(keyinput, main_console_log)
-    # initialize graphics (needs to be optional)
-    nrows = 24
-    ncols = 10
-    gui = app.App(nrows, ncols)
     # initialize basic game
-    game = tetris.Game(nrows=nrows, ncols=ncols, log=[main_file_log, main_console_log], input=keyinput,
-                       listeners=[gui])
+    game = tetris.Game(nrows=24, ncols=10,
+                       log=[main_file_log, main_console_log], input=keyinput)
+    # initialize graphics (needs to be optional)
+    _ = app.App(game)
+
     logger.log("Back to Main! :)", logger.Level.INFO, main_data_log)
 
 

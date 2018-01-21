@@ -59,19 +59,19 @@ class GameGraphics(threading.Thread):
 class App(GameGraphics, GameListener):
     FRAME_DELAY_SEC = 0
 
-    def __init__(self, nrows, ncols):
+    def __init__(self, game):
         super(App, self).__init__()
         # Graphics run on a separate thread, so we wait for thread to run
         while root is None:
             time.sleep(1)
-        self.x_offset = ncols * DRAW_X_PADDING
-        self.y_offset = nrows * DRAW_Y_PADDING
-        self.canvas = super(App, self).add_canvas(w=ncols*DRAW_MULTIPLIER + 2*self.x_offset,
-                                                  h=nrows*DRAW_MULTIPLIER + 2*self.y_offset)
-        self.nrows = nrows
-        self.ncols = ncols
-        self.drawn_board = np.zeros((nrows, ncols))
+        self.game = game
+        self.x_offset = game.ncols * DRAW_X_PADDING
+        self.y_offset = game.nrows * DRAW_Y_PADDING
+        self.canvas = super(App, self).add_canvas(w=game.ncols*DRAW_MULTIPLIER + 2*self.x_offset,
+                                                  h=game.nrows*DRAW_MULTIPLIER + 2*self.y_offset)
+        self.drawn_board = np.zeros((game.nrows, game.ncols))
         self.__draw_default_board()
+        game.register_listener(self)
 
     def update(self, board):
         self.__draw_board(board)
@@ -86,8 +86,8 @@ class App(GameGraphics, GameListener):
         self.__fill_cells(fill_rows, fill_cols, "white")
 
     def __draw_default_board(self):
-        for i in range(0, self.ncols):
-            for j in range(0, self.nrows):
+        for i in range(0, self.game.ncols):
+            for j in range(0, self.game.nrows):
                 self.canvas.create_rectangle(i*DRAW_MULTIPLIER + self.x_offset,
                                              j*DRAW_MULTIPLIER + self.y_offset,
                                              (i+1)*DRAW_MULTIPLIER + self.x_offset,
