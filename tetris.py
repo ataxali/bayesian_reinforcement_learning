@@ -33,6 +33,7 @@ class Game(threading.Thread):
         self.start()
 
     def tick(self):
+        # TODO: Use piece height and width info here and in ____is_valid_move
         if self.game_state == 0:
             new_tile = self.tile_generator.get_next_tile()
             new_tile_origin = (0, (self.ncols // 2) - 1)
@@ -57,13 +58,25 @@ class Game(threading.Thread):
                 new_tile_origin = (self.tile_origin[0], max([self.tile_origin[1] - 1, 0]))
             elif next_key is KeyInputHandler.keys.RIGHT:
                 new_tile_origin = (self.tile_origin[0], min([self.tile_origin[1] + 1, self.ncols - 1]))
+            elif next_key is KeyInputHandler.keys.DOWN:
+                current_col = self.tile_origin[0]
+                max_empty_row = 0
+                for i in range(0, self.board.shape[0]):
+                    if not self.board[i, current_col] == 0:
+                        break
+                    else:
+                        max_empty_row = i
+                new_tile_origin = (min([max_empty_row, self.nrows - 1]), self.tile_origin[1])
             else:
                 pass
-            self.__update_board(new_tile, new_tile_origin, new_tile_orientation)
-            self.tile = new_tile
-            self.tile_origin = new_tile_origin
-            self.tile_orientation = new_tile_orientation
-            self.game_state == 1
+            if self.__is_valid_move(new_tile, new_tile_origin, new_tile_orientation):
+                self.__update_board(new_tile, new_tile_origin, new_tile_orientation)
+                self.tile = new_tile
+                self.tile_origin = new_tile_origin
+                self.tile_orientation = new_tile_orientation
+                self.game_state == 1
+            else:
+                self.game_state == 0
 
     def __update_board(self, tile, origin, orientation):
         if self.tile is not None:
@@ -77,6 +90,13 @@ class Game(threading.Thread):
 
     def __get_indices(self, tile_shape, origin):
         return [tuple(map(sum, zip(origin, x))) for x in tile_shape]
+
+    def __is_valid_move(self, new_tile, new_origin, new_orientation):
+        new_idxs = self.__get_indices(new_tile.get_coords(new_orientation), new_origin)
+        for cell in new_idxs:
+            if self.board[cell[0], cell[1]] == 1:
+                return False
+        return True
 
     def run(self):
         while self.alive:

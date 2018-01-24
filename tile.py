@@ -3,6 +3,7 @@ import logger
 
 
 class Tile:
+    #TODO: Add piece height and width info here
     tile_names = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
     tile_shapes_o_0 = [((0, 0), (1, 0), (2, 0), (3, 0)),  # I
                    ((0, 1), (1, 1), (2, 1), (2, 0)),  # J
