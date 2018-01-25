@@ -34,6 +34,8 @@ class Game(threading.Thread):
 
     def tick(self):
         # TODO: Use piece height and width info here and in ____is_valid_move
+        print("tick here ")
+        print(self.game_state)
         if self.game_state == 0:
             new_tile = self.tile_generator.get_next_tile()
             new_tile_origin = (0, (self.ncols // 2) - 1)
@@ -58,18 +60,25 @@ class Game(threading.Thread):
                 new_tile_origin = (self.tile_origin[0], max([self.tile_origin[1] - 1, 0]))
             elif next_key is KeyInputHandler.keys.RIGHT:
                 new_tile_origin = (self.tile_origin[0], min([self.tile_origin[1] + 1, self.ncols - 1]))
-            elif next_key is KeyInputHandler.keys.DOWN:
-                current_col = self.tile_origin[0]
-                max_empty_row = 0
-                for i in range(0, self.board.shape[0]):
-                    if not self.board[i, current_col] == 0:
-                        break
-                    else:
-                        max_empty_row = i
-                new_tile_origin = (min([max_empty_row, self.nrows - 1]), self.tile_origin[1])
             else:
                 pass
-            if self.__is_valid_move(new_tile, new_tile_origin, new_tile_orientation):
+
+            if next_key is KeyInputHandler.keys.DOWN:
+                new_tile_origin = (
+                min([self.tile_origin[0] + 1, self.nrows - 1]), self.tile_origin[1])
+
+                while self.__is_valid_move(new_tile, new_tile_origin,
+                                           new_tile_orientation):
+                    new_tile_origin = (min([new_tile_origin[0] + 1, self.nrows - 1]), new_tile_origin[1])
+
+                new_tile_origin = (new_tile_origin[0] - 1, new_tile_origin[1])
+                self.__update_board(new_tile, new_tile_origin,
+                                    new_tile_orientation)
+                self.tile = new_tile
+                self.tile_origin = new_tile_origin
+                self.tile_orientation = new_tile_orientation
+                self.game_state == 1
+            elif self.__is_valid_move(new_tile, new_tile_origin, new_tile_orientation):
                 self.__update_board(new_tile, new_tile_origin, new_tile_orientation)
                 self.tile = new_tile
                 self.tile_origin = new_tile_origin
@@ -78,7 +87,7 @@ class Game(threading.Thread):
             else:
                 self.game_state == 0
 
-    def __update_board(self, tile, origin, orientation):
+    def __update_board(self, tile, origin, orientation, isActive=True):
         if self.tile is not None:
             previous_cells = self.__get_indices(self.tile.get_coords(self.tile_orientation),
                                            self.tile_origin)
@@ -86,22 +95,37 @@ class Game(threading.Thread):
                 self.board[cell[0], cell[1]] = 0
         new_cells = self.__get_indices(tile.get_coords(orientation), origin)
         for cell in new_cells:
-            self.board[cell[0], cell[1]] = 1
+            self.board[cell[0], cell[1]] = 2
 
     def __get_indices(self, tile_shape, origin):
         return [tuple(map(sum, zip(origin, x))) for x in tile_shape]
 
     def __is_valid_move(self, new_tile, new_origin, new_orientation):
         new_idxs = self.__get_indices(new_tile.get_coords(new_orientation), new_origin)
+        width, height = new_tile.get_shape(new_orientation)
+        row_vals = [x[0] for x in new_idxs]
+        col_vals = [x[1] for x in new_idxs]
+        if (max(col_vals)) >= self.ncols:
+            print("Valid Invalid Move 1")
+            return False
+        elif (min(col_vals)) < 0:
+            print("Valid Invalid Move 2")
+            return False
+        elif (max(row_vals)) >= self.nrows:
+            print("Valid Invalid Move 3")
+            return False
         for cell in new_idxs:
             if self.board[cell[0], cell[1]] == 1:
+                print("Valid Invalid Move 4" + str(cell))
                 return False
+        print("Valid Move")
         return True
 
     def run(self):
         while self.alive:
             self.tick()
             self.__update_listeners()
+            print("here")
 
     def kill(self):
         self.alive = False
