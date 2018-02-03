@@ -84,7 +84,7 @@ class App(GameGraphics, GameListener):
         self.__fill_cells(fill_rows, fill_cols, "black")
         fill_rows, fill_cols = np.where(diff < -1)
         self.__fill_cells(fill_rows, fill_cols, "red")
-        fill_rows, fill_cols = np.where(diff >= 1)
+        fill_rows, fill_cols = np.where(diff >= 2)
         self.__fill_cells(fill_rows, fill_cols, "white")
 
     def __draw_default_board(self):

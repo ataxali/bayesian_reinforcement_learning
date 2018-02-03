@@ -32,19 +32,26 @@ class Game(threading.Thread):
         # start thread in ctor
         self.start()
 
-    def tick(self):
-        # TODO: Use piece height and width info here and in ____is_valid_move
-        print("tick here ")
-        print(self.game_state)
+    def run(self):
+        while self.alive:
+            self.__tick()
+            self.__update_score()
+            self.__update_listeners()
+
+    def kill(self):
+        self.alive = False
+
+    def register_listener(self, listener):
+        self.listeners.append(listener)
+        listener.update(self.board)
+
+    def __tick(self):
         if self.game_state == 0:
             new_tile = self.tile_generator.get_next_tile()
             new_tile_origin = (0, (self.ncols // 2) - 1)
             new_tile_orientation = 0
-            self.__update_board(new_tile, new_tile_origin, new_tile_orientation)
-            self.tile = new_tile
-            self.tile_origin = new_tile_origin
-            self.tile_orientation = new_tile_orientation
-            self.game_state = 1
+            self.tile_count += 1
+            self.__update_board(new_tile, new_tile_origin, new_tile_orientation, True, 1)
         elif self.game_state == 1:
             next_key = self.input.get_next_key()
             new_tile = self.tile
@@ -64,78 +71,69 @@ class Game(threading.Thread):
                 pass
 
             if next_key is KeyInputHandler.keys.DOWN:
-                new_tile_origin = (
-                min([self.tile_origin[0] + 1, self.nrows - 1]), self.tile_origin[1])
+                new_tile_origin = (min([self.tile_origin[0] + 1, self.nrows - 1]), self.tile_origin[1])
 
-                while self.__is_valid_move(new_tile, new_tile_origin,
-                                           new_tile_orientation):
+                while self.__is_valid_move(new_tile, new_tile_origin,new_tile_orientation):
+                    self.__update_board(new_tile, new_tile_origin, new_tile_orientation, True, 1)
                     new_tile_origin = (min([new_tile_origin[0] + 1, self.nrows - 1]), new_tile_origin[1])
 
                 new_tile_origin = (new_tile_origin[0] - 1, new_tile_origin[1])
-                self.__update_board(new_tile, new_tile_origin,
-                                    new_tile_orientation)
-                self.tile = new_tile
-                self.tile_origin = new_tile_origin
-                self.tile_orientation = new_tile_orientation
-                self.game_state == 1
+                self.__update_board(new_tile, new_tile_origin, new_tile_orientation, False, 0)
+                self.tile = None
             elif self.__is_valid_move(new_tile, new_tile_origin, new_tile_orientation):
-                self.__update_board(new_tile, new_tile_origin, new_tile_orientation)
-                self.tile = new_tile
-                self.tile_origin = new_tile_origin
-                self.tile_orientation = new_tile_orientation
-                self.game_state == 1
+                self.__update_board(new_tile, new_tile_origin, new_tile_orientation, True, 1)
             else:
-                self.game_state == 0
+                if next_key is KeyInputHandler.keys.PASS:
+                    self.game_state = 0
+                    self.tile = None
+                else:
+                    self.game_state = 1
 
-    def __update_board(self, tile, origin, orientation, isActive=True):
+    def __update_board(self, tile, origin, orientation, is_active=True, game_state=1):
         if self.tile is not None:
-            previous_cells = self.__get_indices(self.tile.get_coords(self.tile_orientation),
-                                           self.tile_origin)
+            previous_cells = self.__get_indices(self.tile.get_coords(self.tile_orientation), self.tile_origin)
             for cell in previous_cells:
                 self.board[cell[0], cell[1]] = 0
+
         new_cells = self.__get_indices(tile.get_coords(orientation), origin)
+        cell_val = 2 if is_active else 1
         for cell in new_cells:
-            self.board[cell[0], cell[1]] = 2
+            self.board[cell[0], cell[1]] = cell_val
+
+        self.tile = tile
+        self.tile_origin = origin
+        self.tile_orientation = orientation
+        self.game_state = game_state
 
     def __get_indices(self, tile_shape, origin):
         return [tuple(map(sum, zip(origin, x))) for x in tile_shape]
 
-    def __is_valid_move(self, new_tile, new_origin, new_orientation):
-        new_idxs = self.__get_indices(new_tile.get_coords(new_orientation), new_origin)
-        width, height = new_tile.get_shape(new_orientation)
-        row_vals = [x[0] for x in new_idxs]
-        col_vals = [x[1] for x in new_idxs]
-        if (max(col_vals)) >= self.ncols:
-            print("Valid Invalid Move 1")
-            return False
-        elif (min(col_vals)) < 0:
-            print("Valid Invalid Move 2")
-            return False
-        elif (max(row_vals)) >= self.nrows:
-            print("Valid Invalid Move 3")
-            return False
-        for cell in new_idxs:
-            if self.board[cell[0], cell[1]] == 1:
-                print("Valid Invalid Move 4" + str(cell))
-                return False
-        print("Valid Move")
-        return True
-
-    def run(self):
-        while self.alive:
-            self.tick()
-            self.__update_listeners()
-            print("here")
-
-    def kill(self):
-        self.alive = False
-
-    def register_listener(self, listener):
-        self.listeners.append(listener)
-        listener.update(self.board)
-
     def __update_listeners(self):
         for listener in self.listeners:
             listener.update(self.board)
+
+    def __is_valid_move(self, new_tile, new_origin, new_orientation):
+        new_idxs = self.__get_indices(new_tile.get_coords(new_orientation), new_origin)
+        row_vals = [x[0] for x in new_idxs]
+        col_vals = [x[1] for x in new_idxs]
+        if (max(col_vals)) >= self.ncols:
+            return False
+        elif (min(col_vals)) < 0:
+            return False
+        elif (max(row_vals)) >= self.nrows:
+            return False
+        for cell in new_idxs:
+            if self.board[cell[0], cell[1]] == 1:
+                return False
+        return True
+
+    def __update_score(self):
+        full_rows = np.where(np.all(a=self.board, axis=1))[0]
+        self.line_count += len(full_rows)
+        self.board[full_rows, :] = 0
+        logger.log("Score..." + str(self.line_count), logger.Level.INFO, self.log)
+
+
+
 
 
