@@ -128,9 +128,21 @@ class Game(threading.Thread):
         return True
 
     def __update_score(self):
+        # figure out complete rows
         full_rows = np.where(np.all(a=self.board, axis=1))[0]
         self.line_count += len(full_rows)
         self.board[full_rows, :] = 0
+        # shift rows down after removing complete lines
+        full_rows = np.append(full_rows, -1)
+        full_rows.sort()
+        shift_block_idxs = list(map(lambda idx: range(full_rows[idx] + 1,
+                                                      full_rows[idx + 1]), range(len(full_rows) - 1)))
+        shift_blocks = list(map(lambda idx: np.copy(self.board[idx, :]), shift_block_idxs))
+        for idx in shift_block_idxs: self.board[idx, :] = 0
+        offset = len(full_rows)-1
+        for i in range(len(full_rows)-1):
+            self.board[full_rows[i]+offset+1:full_rows[i+1]+offset, :] = shift_blocks[i]
+            offset -= 1
         logger.log("Score..." + str(self.line_count), logger.Level.INFO, self.log)
 
 
