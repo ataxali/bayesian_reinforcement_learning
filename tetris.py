@@ -3,17 +3,17 @@ import logger
 import threading
 from input_reader import KeyInputHandler
 from tile import TileFactory
+from boardStats import BoardStats
 
 
-class Game(threading.Thread):
+class Game(threading.Thread, BoardStats):
 
     def __init__(self, nrows, ncols, log, input, prob_override=None, rng_seed=None):
-        super(Game, self).__init__()
+        threading.Thread.__init__(self)
+        BoardStats.__init__(self)
         self.board = np.zeros((nrows, ncols))
         self.nrows = nrows
         self.ncols = ncols
-        self.tile_count = 0
-        self.line_count = 0
         self.log = log
         self.input = input
         self.alive = True
@@ -25,7 +25,7 @@ class Game(threading.Thread):
         self.tile_orientation = None
 
         if prob_override is not None:
-            self.tile_generator = TileFactory(probs=prob_override, seed=rng_seed)
+            self.tile_generator = TileFactory(log, probs=prob_override, seed=rng_seed)
         else:
             self.tile_generator = TileFactory(log)
         logger.log("Tetris Board Created...", logger.Level.INFO, self.log)
@@ -50,7 +50,7 @@ class Game(threading.Thread):
             new_tile = self.tile_generator.get_next_tile()
             new_tile_origin = (0, (self.ncols // 2) - 1)
             new_tile_orientation = 0
-            self.tile_count += 1
+            BoardStats.tick_tile_count(self)
             self.__update_board(new_tile, new_tile_origin, new_tile_orientation, True, 1)
         elif self.game_state == 1:
             next_key = self.input.get_next_key()
@@ -130,7 +130,7 @@ class Game(threading.Thread):
     def __update_score(self):
         # figure out complete rows
         full_rows = np.where(np.all(a=self.board, axis=1))[0]
-        self.line_count += len(full_rows)
+        BoardStats.tick_tile_count(self, full_rows)
         self.board[full_rows, :] = 0
         # shift rows down after removing complete lines
         full_rows = np.append(full_rows, -1)
@@ -143,7 +143,7 @@ class Game(threading.Thread):
         for i in range(len(full_rows)-1):
             self.board[full_rows[i]+offset+1:full_rows[i+1]+offset, :] = shift_blocks[i]
             offset -= 1
-        logger.log("Score..." + str(self.line_count), logger.Level.INFO, self.log)
+        logger.log("Score..." + str(BoardStats.get_line_count(self)), logger.Level.INFO, self.log)
 
 
 

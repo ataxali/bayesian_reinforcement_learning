@@ -79,12 +79,21 @@ class App(GameGraphics, GameListener):
         time.sleep(self.FRAME_DELAY_SEC)
 
     def __draw_board(self, next_board):
+        # below is super slow!
+        # fill_rows, fill_cols = np.where(next_board == 1)
+        # self.__fill_cells(fill_rows, fill_cols, "black")
+        # fill_rows, fill_cols = np.where(next_board == 2)
+        # self.__fill_cells(fill_rows, fill_cols, "red")
+        # fill_rows, fill_cols = np.where(next_board == 0)
+        # self.__fill_cells(fill_rows, fill_cols, "white")
+
+        # only draw what changes
         diff = np.subtract(self.drawn_board, next_board)
         fill_rows, fill_cols = np.where(diff == -1)
         self.__fill_cells(fill_rows, fill_cols, "black")
         fill_rows, fill_cols = np.where(diff < -1)
         self.__fill_cells(fill_rows, fill_cols, "red")
-        fill_rows, fill_cols = np.where(diff >= 2)
+        fill_rows, fill_cols = np.where(diff >= 1)
         self.__fill_cells(fill_rows, fill_cols, "white")
 
     def __draw_default_board(self):

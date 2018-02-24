@@ -6,6 +6,8 @@ import input_reader
 
 def main():
     # initialize loggers
+    # tiles ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
+    tile_probs = [0.5, 0, 0, 0.5, 0, 0, 0, 0]
     main_file_log = logger.FileLogger(filename=".log", name="main.file", level=logger.Level.DEBUG)
     main_console_log = logger.ConsoleLogger(name="console.main", level=logger.Level.DEBUG)
     main_data_log = logger.DataLogger(filename=".log", name="main.data")
@@ -15,7 +17,7 @@ def main():
     _ = input_reader.KeyListener(keyinput, main_console_log)
     # initialize basic game
     game = tetris.Game(nrows=24, ncols=10,
-                       log=[main_file_log, main_console_log], input=keyinput)
+                       log=[main_file_log, main_console_log], input=keyinput, prob_override=tile_probs)
     # initialize graphics (needs to be optional)
     _ = app.App(game)
 
