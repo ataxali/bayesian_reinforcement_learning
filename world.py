@@ -1,157 +1,148 @@
 import tkinter as tk
-master = tk.Tk()
-
-triangle_size = 0.2
-cell_score_min = -0.2
-cell_score_max = 0.2
-Width = 100
-x, y = (5, 5)
-actions = ["up", "down", "left", "right"]
-
-board = tk.Canvas(master, width=x*Width, height=y*Width)
-#player = (0, y-1)
-#origin = (0, y-1)
-score = 1
-restart = False
-walk_reward = -0.04
-
-walls = [(1, 1), (1, 2), (2, 1), (2, 2)]
-specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
-cell_scores = {}
+import threading
 
 
-def create_triangle(i, j, action):
-    if action == actions[0]:
-        return board.create_polygon((i+0.5-triangle_size)*Width, (j+triangle_size)*Width,
-                                    (i+0.5+triangle_size)*Width, (j+triangle_size)*Width,
-                                    (i+0.5)*Width, j*Width,
-                                    fill="white", width=1)
-    elif action == actions[1]:
-        return board.create_polygon((i+0.5-triangle_size)*Width, (j+1-triangle_size)*Width,
-                                    (i+0.5+triangle_size)*Width, (j+1-triangle_size)*Width,
-                                    (i+0.5)*Width, (j+1)*Width,
-                                    fill="white", width=1)
-    elif action == actions[2]:
-        return board.create_polygon((i+triangle_size)*Width, (j+0.5-triangle_size)*Width,
-                                    (i+triangle_size)*Width, (j+0.5+triangle_size)*Width,
-                                    i*Width, (j+0.5)*Width,
-                                    fill="white", width=1)
-    elif action == actions[3]:
-        return board.create_polygon((i+1-triangle_size)*Width, (j+0.5-triangle_size)*Width,
-                                    (i+1-triangle_size)*Width, (j+0.5+triangle_size)*Width,
-                                    (i+1)*Width, (j+0.5)*Width,
-                                    fill="white", width=1)
+class World(object):
 
+    def __init__(self, do_render=True, init_x=None, init_y=None):
+        self.master = tk.Tk()
 
-def render_grid():
-    global specials, walls, Width, x, y, player
-    for i in range(x):
-        for j in range(y):
-            board.create_rectangle(i*Width, j*Width, (i+1)*Width, (j+1)*Width, fill="white", width=1)
-            temp = {}
-            for action in actions:
-                temp[action] = create_triangle(i, j, action)
-            cell_scores[(i,j)] = temp
-    for (i, j, c, w) in specials:
-        board.create_rectangle(i*Width, j*Width, (i+1)*Width, (j+1)*Width, fill=c, width=1)
-    for (i, j) in walls:
-        board.create_rectangle(i*Width, j*Width, (i+1)*Width, (j+1)*Width, fill="black", width=1)
+        self.triangle_size = 0.2
+        self.cell_score_min = -0.2
+        self.cell_score_max = 0.2
+        self.Width = 100
+        self.x, self.y = (5, 5)
+        self.actions = ["up", "down", "left", "right"]
 
+        self.board = tk.Canvas(self.master, width=self.x*self.Width,
+                               height=self.y*self.Width)
+        #player = (0, y-1)
+        #origin = (0, y-1)
+        self.score = 1
+        self.restart = False
+        self.walk_reward = -0.04
 
-render_grid()
+        self.walls = [(1, 1), (1, 2), (2, 1), (2, 2)]
+        self.specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
+        self.cell_scores = {}
 
+        if do_render: self.render_grid()
 
-def set_cell_score(state, action, val):
-    global cell_score_min, cell_score_max
-    triangle = cell_scores[state][action]
-    green_dec = int(min(255, max(0, (val - cell_score_min) * 255.0 / (cell_score_max - cell_score_min))))
-    green = hex(green_dec)[2:]
-    red = hex(255-green_dec)[2:]
-    if len(red) == 1:
-        red += "0"
-    if len(green) == 1:
-        green += "0"
-    color = "#" + red + green + "00"
-    board.itemconfigure(triangle, fill=color)
+        self.master.bind("<Up>", self.call_up)
+        self.master.bind("<Down>", self.call_down)
+        self.master.bind("<Right>", self.call_right)
+        self.master.bind("<Left>", self.call_left)
 
+        if not all(map(lambda x: isinstance(x, int), [init_x, init_y])):
+            self.player = (0, self.y - 1)
+            self.origin = (0, self.y - 1)
+        else:
+            self.origin = (init_x, init_y)
+            self.player = self.origin
 
-def try_move(dx, dy):
-    global player, x, y, score, walk_reward, me, restart
-    if restart == True:
-        restart_game()
-    new_x = player[0] + dx
-    new_y = player[1] + dy
-    score += walk_reward
-    if (new_x >= 0) and (new_x < x) and (new_y >= 0) and (new_y < y) and not ((new_x, new_y) in walls):
-        board.coords(me, new_x*Width+Width*2/10, new_y*Width+Width*2/10, new_x*Width+Width*8/10, new_y*Width+Width*8/10)
-        player = (new_x, new_y)
-    for (i, j, c, w) in specials:
-        if new_x == i and new_y == j:
-            score -= walk_reward
-            score += w
-            if score > 0:
-                print("Success! score: ", score)
-            else:
-                print("Fail! score: ", score)
-            restart = True
-            return
-    #print "score: ", score
+        self.board.grid(row=0, column=0)
+        self.me = self.board.create_rectangle(
+            self.player[0] * self.Width + self.Width * 2 / 10,
+            self.player[1] * self.Width + self.Width * 2 / 10,
+            self.player[0] * self.Width + self.Width * 8 / 10,
+            self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
+            tag="me")
 
+        if do_render: self.master.mainloop()
 
-def call_up(event):
-    try_move(0, -1)
+    def create_triangle(self, i, j, action):
+        if action == self.actions[0]:
+            return self.board.create_polygon((i+0.5-self.triangle_size)*self.Width, (j+self.triangle_size)*self.Width,
+                                        (i+0.5+self.triangle_size)*self.Width, (j+self.triangle_size)*self.Width,
+                                        (i+0.5)*self.Width, j*self.Width,
+                                        fill="white", width=1)
+        elif action == self.actions[1]:
+            return self.board.create_polygon((i+0.5-self.triangle_size)*self.Width, (j+1-self.triangle_size)*self.Width,
+                                        (i+0.5+self.triangle_size)*self.Width, (j+1-self.triangle_size)*self.Width,
+                                        (i+0.5)*self.Width, (j+1)*self.Width,
+                                        fill="white", width=1)
+        elif action == self.actions[2]:
+            return self.board.create_polygon((i+self.triangle_size)*self.Width, (j+0.5-self.triangle_size)*self.Width,
+                                        (i+self.triangle_size)*self.Width, (j+0.5+self.triangle_size)*self.Width,
+                                        i*self.Width, (j+0.5)*self.Width,
+                                        fill="white", width=1)
+        elif action == self.actions[3]:
+            return self.board.create_polygon((i+1-self.triangle_size)*self.Width, (j+0.5-self.triangle_size)*self.Width,
+                                        (i+1-self.triangle_size)*self.Width, (j+0.5+self.triangle_size)*self.Width,
+                                        (i+1)*self.Width, (j+0.5)*self.Width,
+                                        fill="white", width=1)
 
+    def render_grid(self):
+        for i in range(self.x):
+            for j in range(self.y):
+                self.board.create_rectangle(i*self.Width, j*self.Width,
+                                            (i+1)*self.Width, (j+1)*self.Width, fill="white", width=1)
+                temp = {}
+                for action in self.actions:
+                    temp[action] = self.create_triangle(i, j, action)
+                    self.cell_scores[(i,j)] = temp
+        for (i, j, c, w) in self.specials:
+            self.board.create_rectangle(i*self.Width, j*self.Width,
+                                        (i+1)*self.Width, (j+1)*self.Width, fill=c, width=1)
+        for (i, j) in self.walls:
+            self.board.create_rectangle(i*self.Width, j*self.Width,
+                                        (i+1)*self.Width, (j+1)*self.Width, fill="black", width=1)
 
-def call_down(event):
-    try_move(0, 1)
+    def set_cell_score(self, state, action, val):
+        triangle = self.cell_scores[state][action]
+        green_dec = int(min(255, max(0, (val - self.cell_score_min) * 255.0 / (self.cell_score_max - self.cell_score_min))))
+        green = hex(green_dec)[2:]
+        red = hex(255-green_dec)[2:]
+        if len(red) == 1:
+            red += "0"
+        if len(green) == 1:
+            green += "0"
+        color = "#" + red + green + "00"
+        self.board.itemconfigure(triangle, fill=color)
 
+    def try_move(self, dx, dy):
+        if self.restart:
+            self.restart_game()
+        new_x = self.player[0] + dx
+        new_y = self.player[1] + dy
+        self.score += self.walk_reward
+        # print(self.player, self.score, new_x, new_y)
+        if (new_x >= 0) and (new_x < self.x) and (new_y >= 0) and (new_y < self.y) and not ((new_x, new_y) in self.walls):
+            self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
+                              new_x*self.Width+self.Width*8/10, new_y*self.Width+self.Width*8/10)
+            self.player = (new_x, new_y)
+        for (i, j, c, w) in self.specials:
+            if new_x == i and new_y == j:
+                self.score -= self.walk_reward
+                self.score += w
+                # if self.score > 0:
+                #     print("Success! score: ", self.score)
+                # else:
+                #     print("Fail! score: ", self.score)
+                self.restart = True
+                return
 
-def call_left(event):
-    try_move(-1, 0)
+    def call_up(self, event):
+        self.try_move(0, -1)
 
+    def call_down(self, event):
+        self.try_move(0, 1)
 
-def call_right(event):
-    try_move(1, 0)
+    def call_left(self, event):
+        self.try_move(-1, 0)
 
+    def call_right(self, event):
+        self.try_move(1, 0)
 
-def restart_game():
-    global player, score, me, restart
-    player = origin
-    score = 1
-    restart = False
-    board.coords(me, player[0]*Width+Width*2/10, player[1]*Width+Width*2/10, player[0]*Width+Width*8/10, player[1]*Width+Width*8/10)
+    def restart_game(self):
+        self.player = self.origin
+        self.score = 1
+        self.restart = False
+        self.board.coords(self.me, self.player[0]*self.Width+self.Width*2/10, self.player[1]*self.Width+self.Width*2/10,
+                          self.player[0]*self.Width+self.Width*8/10, self.player[1]*self.Width+self.Width*8/10)
 
+    def has_restarted(self):
+        return self.restart
 
-def has_restarted():
-    return restart
-
-
-master.bind("<Up>", call_up)
-master.bind("<Down>", call_down)
-master.bind("<Right>", call_right)
-master.bind("<Left>", call_left)
-
-
-def create_me():
-    global me
-    me = board.create_rectangle(player[0]*Width+Width*2/10, player[1]*Width+Width*2/10,
-                            player[0]*Width+Width*8/10, player[1]*Width+Width*8/10, fill="orange", width=1, tag="me")
-
-board.grid(row=0, column=0)
-
-
-def start_game():
-    global player, origin
-    player = (0, y-1)
-    origin = (0, y-1)
-    create_me()
-    master.mainloop()
-
-
-def start_sim(sim_x, sim_y):
-    global player, origin
-    origin = (sim_x, sim_y)
-    player = origin
-    create_me()
-    master.mainloop()
-
+    def _close(self):
+        self.quit()
