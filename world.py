@@ -1,15 +1,16 @@
 import tkinter as tk
 master = tk.Tk()
 
-triangle_size = 0.1
+triangle_size = 0.2
 cell_score_min = -0.2
 cell_score_max = 0.2
 Width = 100
-(x, y) = (5, 5)
+x, y = (5, 5)
 actions = ["up", "down", "left", "right"]
 
 board = tk.Canvas(master, width=x*Width, height=y*Width)
-player = (0, y-1)
+#player = (0, y-1)
+#origin = (0, y-1)
 score = 1
 restart = False
 walk_reward = -0.04
@@ -55,6 +56,7 @@ def render_grid():
         board.create_rectangle(i*Width, j*Width, (i+1)*Width, (j+1)*Width, fill=c, width=1)
     for (i, j) in walls:
         board.create_rectangle(i*Width, j*Width, (i+1)*Width, (j+1)*Width, fill="black", width=1)
+
 
 render_grid()
 
@@ -114,24 +116,42 @@ def call_right(event):
 
 def restart_game():
     global player, score, me, restart
-    player = (0, y-1)
+    player = origin
     score = 1
     restart = False
     board.coords(me, player[0]*Width+Width*2/10, player[1]*Width+Width*2/10, player[0]*Width+Width*8/10, player[1]*Width+Width*8/10)
 
+
 def has_restarted():
     return restart
+
 
 master.bind("<Up>", call_up)
 master.bind("<Down>", call_down)
 master.bind("<Right>", call_right)
 master.bind("<Left>", call_left)
 
-me = board.create_rectangle(player[0]*Width+Width*2/10, player[1]*Width+Width*2/10,
+
+def create_me():
+    global me
+    me = board.create_rectangle(player[0]*Width+Width*2/10, player[1]*Width+Width*2/10,
                             player[0]*Width+Width*8/10, player[1]*Width+Width*8/10, fill="orange", width=1, tag="me")
 
 board.grid(row=0, column=0)
 
 
 def start_game():
+    global player, origin
+    player = (0, y-1)
+    origin = (0, y-1)
+    create_me()
     master.mainloop()
+
+
+def start_sim(sim_x, sim_y):
+    global player, origin
+    origin = (sim_x, sim_y)
+    player = origin
+    create_me()
+    master.mainloop()
+
