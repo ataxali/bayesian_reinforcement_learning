@@ -1,0 +1,58 @@
+'''
+modeling ideas: 
+
+example: 
+for the maze case where 
+
+## 1st scenario
+
+ 1. the current state is [0,4]
+ 2. no historical data is observed or available, 
+ 3. prior is setted up to be up: uniform [0,1] (or Beta(1,1)) and same for other VALID direction
+   => up: U[0,1] , right:U[0,1]
+ 
+ in the initial stage of the game, the action is decided almost randomly since there's no data available for updating
+ hence the first step will be a coin toss for each dimension,
+ 
+ we simulate sample from each dimension and take the action which has argmax in prob.   
+ 
+ ## 2nd scenario
+ 
+ similar setup as the 1st scenario, but has updated the posterior 
+ 1. the current state is [0,4]
+ 2. one historical data is availble for state [0,4] : observed [0,4] => [0,3] with reward R 
+ 3. updating prior based on historical data given for EACH dimension, if the action is consider a success for one dimension, 
+    the rest will considered as failure when updating, 
+    
+    hence the posterior will updated from 
+    
+    Prior: up: U[0,1] , right:U[0,1] | observed [0,4] => [0,3](go up ) 
+   ==> Posterior : up:Beta(2,1) right:Beta(1,2) respectively 
+   
+   then the thompson sampling move for next action sis the same as the initial state with different posterior: 
+   
+   simulate samples from posterior and the action with argmax will take place. 
+   
+   
+## Question/Doubt: HOW TO INCORPORATE HISTORICAL REWARD IN THE UPDATING?
+
+the first scenario assumed that both up and right share the same reward , either observed or not, 
+
+but how to incorporate reward that is observed from historical data to chose which action to make? 
+
+ Attempt 1 : choose action that maximize historical reward: 
+                 since the reward for action up is observed, 
+                 we take the expectation for each dimension with histyorical reward
+                 ==> 1. simulate data from each dimension, 
+                     2. calculate arg = {  historical reward * simulated data }
+                     3. take the action that argmax in 2. step 
+
+ Attempt 2 : different reward mechanism: 
+                since different reward is presented from historical data, (with different depth and other paras of the tree)
+                the action will take those arguments into account
+                 ==> 1. simulate data from each dimension, 
+                     2. calculate arg = {  historical reward * simulated data * {reweight parameter from tree}} ##different from 1 
+                     3. take the action that argmax in 2. step                     
+ 
+ 
+'''
