@@ -1,4 +1,4 @@
-
+import numpy as np
 
 class HistoryManager(object):
     def __init__(self, actions):
@@ -33,4 +33,4 @@ class ThompsonSampler(object):
         action_psuedo_counts = self.history_manager.get_action_set()
         actions = action_psuedo_counts.keys()
         alphas = action_psuedo_counts.values()
-        
+        action_probs = np.random.dirichlet(alphas, 1)
