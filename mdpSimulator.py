@@ -18,23 +18,23 @@ class WorldSimulator(MDPSimulator):
         self.do_render = do_render
         self.use_cache = use_cache
 
-    def sim(self, state, action):
+    def __run(self, sim_world, sim_state, sim_action):
+        r = -sim_world.score
+        if sim_action == sim_world.actions[0]:
+            sim_world.try_move(0, -1)
+        elif sim_action == sim_world.actions[1]:
+            sim_world.try_move(0, 1)
+        elif sim_action == sim_world.actions[2]:
+            sim_world.try_move(-1, 0)
+        elif sim_action == sim_world.actions[3]:
+            sim_world.try_move(1, 0)
+        else:
+            return
+        s2 = sim_world.player
+        r += sim_world.score
+        return r, s2
 
-        def run(sim_world, sim_state, sim_action):
-            r = -sim_world.score
-            if sim_action == sim_world.actions[0]:
-                sim_world.try_move(0, -1)
-            elif sim_action == sim_world.actions[1]:
-                sim_world.try_move(0, 1)
-            elif sim_action == sim_world.actions[2]:
-                sim_world.try_move(-1, 0)
-            elif sim_action == sim_world.actions[3]:
-                sim_world.try_move(1, 0)
-            else:
-                return
-            s2 = sim_world.player
-            r += sim_world.score
-            return r, s2
+    def sim(self, state, action):
         if self.use_cache:
             if (tuple(state), action) in WorldSimulator.WORLD_SIM_CACHE:
                 # print("Skipped simulation for cached result")
@@ -42,7 +42,7 @@ class WorldSimulator(MDPSimulator):
 
         init_x, init_y = self.get_x_y(state)
         sim_world = world.World(self.do_render, init_x, init_y)
-        sim_r, sim_n_s = run(sim_world, state, action)
+        sim_r, sim_n_s = self.__run(sim_world, state, action)
         if self.do_render: sim_world.destroy()
         # return values are: <orig_state, action, reward, new_state>
         if self.use_cache:
@@ -53,5 +53,13 @@ class WorldSimulator(MDPSimulator):
     def get_x_y(self, state):
         return state[0], state[1]
 
-
-
+    def get_valid_actions(self, root, actions):
+        valid_actions = []
+        init_x, init_y = self.get_x_y(root)
+        for action in actions:
+            sim_world = world.World(self.do_render, init_x, init_y)
+            sim_r, sim_n_s = self.__run(sim_world, root, action)
+            if not list(sim_n_s) == list(root):
+                valid_actions.append(action)
+        if self.do_render: sim_world.destroy()
+        return valid_actions
