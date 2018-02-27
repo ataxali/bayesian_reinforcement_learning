@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class HistoryManager(object):
     def __init__(self, actions):
         self.history = list()
@@ -43,11 +44,13 @@ class ThompsonSampler(object):
         action_probs = np.random.dirichlet(alphas, 1)
         if not scale_by_rewards:
             return self.__reduce_action_space(hi=1, lo=0,
-                                              action_probs=action_probs, actions=actions)
+                                              action_probs=np.cumsum(action_probs),
+                                              actions=actions)
         else:
             rewards = map(lambda x: x[1]/float(self.history_manager.get_total_rewards()),
                           action_psuedo_counts.values())
             action_probs = [prob*reward for (prob, reward) in zip(action_probs, rewards)]
+            action_probs = np.cumsum(action_probs)
             return self.__reduce_action_space(hi=max(action_probs), lo=0,
                                               action_probs=action_probs,
                                               actions=actions)
