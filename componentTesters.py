@@ -74,6 +74,7 @@ def sparse_tree_model_tester():
     horizon = 5
     branch_factor = 5
     prev_root = None
+    move_count = 0
     while True:
         print("Evaluating tree at ", root_state)
         ste = SparseTreeEvaluator(simulator, root_state, action_set, horizon, branch_factor)
@@ -91,25 +92,23 @@ def sparse_tree_model_tester():
             if len(possible_actions) == 0:
                 raise Exception("Whoops, this is a really bad place")
             possible_actions.pop(optimal_action_index)
-            print(possible_actions)
             action_scores = list(ste.lookahead_tree.node.value[2][0])
             action_scores.pop(optimal_action_index)
-            print(action_scores)
             new_optimal_index = action_scores.index(max(action_scores))
-            print(new_optimal_index)
             new_optimal_action = possible_actions[new_optimal_index]
             print("New optimal action: ", str(new_optimal_action))
             _, _, _, new_state = simulator.sim(root_state, new_optimal_action)
 
         prev_root = root_state
         root_state = list(new_state)
+        move_count += 1
         print("Moving to ", root_state, "...")
 
         if root_state == terminal_state_win:
-            print("Agent Won!")
+            print("Agent Won in ", move_count, " moves!")
             break
         if root_state == terminal_state_loss:
-            print("Agent Lost!")
+            print("Agent Lost in ", move_count, " moves!")
             break
 
 sparse_tree_model_tester()
