@@ -26,11 +26,18 @@ class HistoryManager(object):
 
 
 class ThompsonSampler(object):
-    def __init__(self, history_manager):
+    def __init__(self, history_manager, branching_factor):
         self.history_manager = history_manager
+        self.branching_factor = branching_factor
 
     def get_action_set(self):
         action_psuedo_counts = self.history_manager.get_action_set()
         actions = action_psuedo_counts.keys()
         alphas = action_psuedo_counts.values()
         action_probs = np.random.dirichlet(alphas, 1)
+        unif_samples = np.random.uniform(size=self.branching_factor)
+        action_set = set()
+        for sample in unif_samples:
+            for prob_i in range(len(action_probs)):
+                if sample < action_probs[prob_i]:
+                    action_set.add(actions[prob_i])
