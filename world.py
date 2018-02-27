@@ -1,5 +1,13 @@
 import tkinter as tk
 
+static_specials = [(7, 3, "red", -1), (9, 1, "green", 1)]
+static_x, static_y = (10, 10)
+static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,3), (5,3), (5,4), (5,5), (5,0)]
+
+#static_specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
+#static_x, static_y = (5, 5)
+#static_walls = [(1, 1), (1, 2), (2, 1), (2, 2)]
+
 
 class World(object):
 
@@ -10,20 +18,18 @@ class World(object):
         self.triangle_size = 0.2
         self.cell_score_min = -0.2
         self.cell_score_max = 0.2
-        self.Width = 100
-        self.x, self.y = (5, 5)
+        self.Width = 50
+        self.x, self.y = static_x, static_y
         self.actions = ["up", "down", "left", "right"]
 
         if self.do_render: self.board = tk.Canvas(self.master, width=self.x*self.Width,
                                height=self.y*self.Width)
-        #player = (0, y-1)
-        #origin = (0, y-1)
         self.score = 1
         self.restart = False
-        self.walk_reward = -0.04
+        self.walk_reward = -0.1
 
-        self.walls = [(1, 1), (1, 2), (2, 1), (2, 2)]
-        self.specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
+        self.walls = static_walls
+        self.specials = static_specials
         self.cell_scores = {}
 
         if do_render: self.render_grid()
@@ -102,8 +108,15 @@ class World(object):
         self.board.itemconfigure(triangle, fill=color)
 
     def try_move(self, dx, dy):
-        if self.restart:
-            self.restart_game()
+        #if self.restart:
+        #    self.restart_game()
+
+        # no movement out of terminal states
+        for (i, j, c, w) in self.specials:
+            if self.player[0] == i and self.player[1] == j:
+                self.score += w
+                return
+
         new_x = self.player[0] + dx
         new_y = self.player[1] + dy
         self.score += self.walk_reward
@@ -117,11 +130,12 @@ class World(object):
             if new_x == i and new_y == j:
                 self.score -= self.walk_reward
                 self.score += w
+                self.player = (new_x, new_y)
                 # if self.score > 0:
                 #     print("Success! score: ", self.score)
                 # else:
                 #     print("Fail! score: ", self.score)
-                self.restart = True
+                # self.restart = True
                 return
 
     def call_up(self, event):

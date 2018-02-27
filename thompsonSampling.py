@@ -36,7 +36,7 @@ class ThompsonSampler(object):
         self.history_manager = history_manager
         self.branching_factor = branching_factor
 
-    def get_action_set(self, scale_by_rewards=True, reduce_CI=True):
+    def get_action_set(self, scale_by_rewards=True):
         action_psuedo_counts = self.history_manager.get_action_count_reward_dict()
         actions = action_psuedo_counts.keys()
         alphas = map(lambda x: x[0], action_psuedo_counts.values())

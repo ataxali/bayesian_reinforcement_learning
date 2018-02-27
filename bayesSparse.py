@@ -27,7 +27,6 @@ import enum
 from mdpSimulator import MDPSimulator
 
 print_debug = False
-
 NodeType = enum.Enum("NodeType", "Outcome Decision")
 
 
@@ -39,6 +38,7 @@ class SparseTree(object):
             self.depth = depth
             self.state = state
             self.value = value
+
         def __str__(self):
             return "[" + str(self.type) + ":" + str(self.depth) + ":" + str(self.value) + "]"
 
@@ -63,14 +63,13 @@ class SparseTree(object):
 
 class SparseTreeEvaluator(object):
 
-        def __init__(self, mdp_simulator, root_state, action_set, horizon, branch_factor):
+        def __init__(self, mdp_simulator, root_state, action_set, horizon):
             if not isinstance(mdp_simulator, MDPSimulator):
                 raise Exception('Sparse tree evaluator needs MDP Simulator!')
             self.simulator = mdp_simulator
             self.root_state = root_state
             self.action_set = action_set
             self.horizon = horizon
-            self.branch_factor = branch_factor
             self.lookahead_tree = None
 
         def evaluate(self):
@@ -89,7 +88,7 @@ class SparseTreeEvaluator(object):
 
         def __grow_sparse_tree(self, lookahead_tree):
             if (lookahead_tree.node.depth >= self.horizon) and (lookahead_tree.node.type == NodeType.Decision):
-                # leafs of sparse tree should be outcome nodes
+                # leaves of sparse tree should be outcome nodes
                 return
 
             if lookahead_tree.node.type == NodeType.Decision:
@@ -117,9 +116,13 @@ class SparseTreeEvaluator(object):
                 self.__eval_sparse_tree(child)
 
             if lookahead_tree.node.type == NodeType.Outcome:
-                # average present and future rewards
                 reward_avg = sum(lookahead_tree.node.value) / float(len(lookahead_tree.node.value))
-                lookahead_tree.append_val_to_parent(reward_avg)
+                if len(lookahead_tree.children) == 0:
+                    depth_factor = max(self.horizon, lookahead_tree.node.depth) - lookahead_tree.node.depth + 1
+                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor))
+                else:
+                    # average present and future rewards
+                    lookahead_tree.append_val_to_parent(reward_avg)
 
             if lookahead_tree.node.type == NodeType.Decision:
                 if lookahead_tree.node.depth == 0:
@@ -132,8 +135,14 @@ class SparseTreeEvaluator(object):
                 else:
                     # maximize the averages and discount the max
                     if len(lookahead_tree.node.value):
-                        present_reward = max(lookahead_tree.node.value) * float(self.horizon - lookahead_tree.node.depth)
-                        lookahead_tree.append_val_to_parent(present_reward)
+                        present_reward = max(lookahead_tree.node.value)
+                        if len(lookahead_tree.children) == 0:
+                            depth_factor = max(self.horizon,
+                                               lookahead_tree.node.depth) - lookahead_tree.node.depth + 1
+                            lookahead_tree.append_val_to_parent(present_reward *
+                                                                float(depth_factor))
+                        else:
+                            lookahead_tree.append_val_to_parent(present_reward)
 
         def __get_actions(self, root):
             return self.action_set

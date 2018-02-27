@@ -15,8 +15,8 @@ from mdpSimulator import WorldSimulator
 from bayesSparse import SparseTreeEvaluator
 from thompsonSampling import HistoryManager, ThompsonSampler
 
-terminal_state_win = [4, 0]
-terminal_state_loss = [4, 1]
+terminal_state_win = [world.static_specials[1][0], world.static_specials[1][1]]
+terminal_state_loss = [world.static_specials[0][0], world.static_specials[0][1]]
 
 
 def test_world_simulator():
@@ -38,15 +38,15 @@ def sparse_tree_tester():
 
     simulator = WorldSimulator(use_cache=True)
     action_set = ["up", "down", "left", "right"]
-    horizon = 5
+    horizon = 6
     branch_factor = 5
-    ste = SparseTreeEvaluator(simulator, root_state, action_set, horizon,
-                              branch_factor)
+    ste = SparseTreeEvaluator(simulator, root_state, action_set, horizon)
     ste.evaluate()
     print(ste)
     print(random.choice(ste.lookahead_tree.node.value[0]))
     t1 = time.time()
     print("Runtime:", t1-t0)
+
 
 def thompson_sampler_tester():
     action_set = ["up", "down", "left", "right"]
@@ -68,36 +68,41 @@ def thompson_sampler_tester():
 
 
 def sparse_tree_model_tester():
-    root_state = [0, 4]
+    root_state = [2, 6]
     action_set = ["up", "down", "left", "right"]
     simulator = WorldSimulator(use_cache=True)
     horizon = 5
     branch_factor = 5
     prev_root = None
     move_count = 0
-    while True:
-        print("Evaluating tree at ", root_state)
-        ste = SparseTreeEvaluator(simulator, root_state, action_set, horizon, branch_factor)
+
+    def eval_sparse_tree(sim, root_s, actions, horizon):
+        ste = SparseTreeEvaluator(sim, root_s, actions, horizon)
         ste.evaluate()
         print(ste)
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
-        possible_actions = list(simulator.get_valid_actions(root_state, action_set))
+        possible_actions = list(sim.get_valid_actions(root_s, actions))
         print("Possible actions: ", possible_actions)
         optimal_action = possible_actions[optimal_action_index]
-        print("Optimal action: ", str(optimal_action))
+        print("Optimal action:", str(optimal_action), ":", optimal_action_index)
+        return optimal_action, optimal_action_index, possible_actions, ste
+
+
+    while True:
+        print("Evaluating tree at ", root_state)
+        optimal_action, optimal_action_index, possible_actions, ste = \
+            eval_sparse_tree(simulator, root_state, action_set, horizon)
         _, _, _, new_state = simulator.sim(root_state, optimal_action)
+
         while list(new_state) == prev_root:
             # loop breaker
             print("Policy loop detected...")
             if len(possible_actions) == 0:
                 raise Exception("Whoops, this is a really bad place")
             possible_actions.pop(optimal_action_index)
-            action_scores = list(ste.lookahead_tree.node.value[2][0])
-            action_scores.pop(optimal_action_index)
-            new_optimal_index = action_scores.index(max(action_scores))
-            new_optimal_action = possible_actions[new_optimal_index]
-            print("New optimal action: ", str(new_optimal_action))
-            _, _, _, new_state = simulator.sim(root_state, new_optimal_action)
+            optimal_action, optimal_action_index, possible_actions, ste = \
+                eval_sparse_tree(simulator, root_state, possible_actions, horizon)
+            _, _, _, new_state = simulator.sim(root_state, optimal_action)
 
         prev_root = root_state
         root_state = list(new_state)
@@ -110,5 +115,6 @@ def sparse_tree_model_tester():
         if root_state == terminal_state_loss:
             print("Agent Lost in ", move_count, " moves!")
             break
+
 
 sparse_tree_model_tester()

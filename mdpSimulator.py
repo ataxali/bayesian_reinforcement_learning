@@ -12,6 +12,7 @@ class MDPSimulator(object):
 
 class WorldSimulator(MDPSimulator):
     WORLD_SIM_CACHE = dict()
+    WORLD_VALID_ACTIONS_CACHE = dict()
 
     def __init__(self, do_render=False, use_cache=True):
         # perhaps init threadpool here
