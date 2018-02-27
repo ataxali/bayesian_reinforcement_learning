@@ -1,7 +1,7 @@
 import tkinter as tk
 
 static_specials = [(7, 3, "red", -1), (9, 1, "green", 1)]
-static_x, static_y = (10, 10)
+static_x, static_y = (10, 6)
 static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,3), (5,3), (5,4), (5,5), (5,0)]
 
 #static_specials = [(4, 1, "red", -1), (4, 0, "green", 1)]

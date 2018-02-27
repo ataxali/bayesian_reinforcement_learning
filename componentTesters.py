@@ -13,7 +13,7 @@ import random
 
 from mdpSimulator import WorldSimulator
 from bayesSparse import SparseTreeEvaluator
-from thompsonSampling import HistoryManager, ThompsonSampler
+from thompsonSampling import HistoryManager, BootstrapHistoryManager, ThompsonSampler
 
 terminal_state_win = [world.static_specials[1][0], world.static_specials[1][1]]
 terminal_state_loss = [world.static_specials[0][0], world.static_specials[0][1]]
@@ -52,7 +52,25 @@ def thompson_sampler_tester():
     action_set = ["up", "down", "left", "right"]
     branching_factor = 2
     history = HistoryManager(action_set)
-    tsampler = ThompsonSampler(history, branching_factor)
+    #tsampler = ThompsonSampler(history, branching_factor)
+
+    w = WorldSimulator()
+    move_1 = w.sim([0, 4], "up")
+    history.add(move_1)
+
+    move_2 = w.sim([0, 3], "right")
+    history.add(move_2)
+
+    move_3 = w.sim([1, 3], "up")
+    history.add(move_3)
+    print(history.get_action_count_reward_dict())
+    #print(tsampler.get_action_set())
+
+
+def bootstrap_history_tester():
+    action_set = ["up", "down", "left", "right"]
+    branching_factor = 2
+    history = BootstrapHistoryManager(action_set, 0.5)
 
     w = WorldSimulator()
     move_1 = w.sim([0, 4], "up")
@@ -64,20 +82,25 @@ def thompson_sampler_tester():
     move_3 = w.sim([1, 3], "up")
     history.add(move_3)
 
-    print(tsampler.get_action_set())
+    print(history.get_action_count_reward_dict())
+
 
 
 def sparse_tree_model_tester():
-    root_state = [2, 6]
+    t0 = time.time()
+    root_state = [0, 4]
     action_set = ["up", "down", "left", "right"]
     simulator = WorldSimulator(use_cache=True)
     horizon = 5
     branch_factor = 5
     prev_root = None
     move_count = 0
+    history_manager = BootstrapHistoryManager(action_set, 0.5)
+    thompson_sampler = ThompsonSampler(history_manager)
+    #thompson_sampler = None
 
-    def eval_sparse_tree(sim, root_s, actions, horizon):
-        ste = SparseTreeEvaluator(sim, root_s, actions, horizon)
+    def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
+        ste = SparseTreeEvaluator(sim, root_s, actions, horizon, tsampler)
         ste.evaluate()
         print(ste)
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
@@ -85,14 +108,14 @@ def sparse_tree_model_tester():
         print("Possible actions: ", possible_actions)
         optimal_action = possible_actions[optimal_action_index]
         print("Optimal action:", str(optimal_action), ":", optimal_action_index)
+        print("Tree size: ", ste.lookahead_tree.get_tree_size())
         return optimal_action, optimal_action_index, possible_actions, ste
-
 
     while True:
         print("Evaluating tree at ", root_state)
         optimal_action, optimal_action_index, possible_actions, ste = \
-            eval_sparse_tree(simulator, root_state, action_set, horizon)
-        _, _, _, new_state = simulator.sim(root_state, optimal_action)
+            eval_sparse_tree(simulator, root_state, action_set, horizon, thompson_sampler)
+        orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action)
 
         while list(new_state) == prev_root:
             # loop breaker
@@ -102,19 +125,25 @@ def sparse_tree_model_tester():
             possible_actions.pop(optimal_action_index)
             optimal_action, optimal_action_index, possible_actions, ste = \
                 eval_sparse_tree(simulator, root_state, possible_actions, horizon)
-            _, _, _, new_state = simulator.sim(root_state, optimal_action)
+            orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action)
 
         prev_root = root_state
         root_state = list(new_state)
         move_count += 1
         print("Moving to ", root_state, "...")
+        history_manager.add((orig_state, action, new_reward, new_state))
 
         if root_state == terminal_state_win:
             print("Agent Won in ", move_count, " moves!")
+            print("Time Taken: ", time.time()-t0)
             break
         if root_state == terminal_state_loss:
             print("Agent Lost in ", move_count, " moves!")
+            print("Time Taken: ", time.time()-t0)
             break
 
 
 sparse_tree_model_tester()
+
+#bootstrap_history_tester()
+#thompson_sampler_tester()

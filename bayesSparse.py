@@ -58,12 +58,17 @@ class SparseTree(object):
         for child in self.children:
             children_str += " " + str(child.node)
         children_str += "}"
-        return str(self.parent.node) + " -> " + str(self.node) + " -> " + children_str
+        return str(self.node) + " -> " + children_str
+
+    def get_tree_size(self):
+        if len(self.children) == 0:
+            return 1
+        return 1 + sum(map(lambda child: child.get_tree_size(), self.children))
 
 
 class SparseTreeEvaluator(object):
 
-        def __init__(self, mdp_simulator, root_state, action_set, horizon):
+        def __init__(self, mdp_simulator, root_state, action_set, horizon, thompsonSampler=None):
             if not isinstance(mdp_simulator, MDPSimulator):
                 raise Exception('Sparse tree evaluator needs MDP Simulator!')
             self.simulator = mdp_simulator
@@ -71,6 +76,7 @@ class SparseTreeEvaluator(object):
             self.action_set = action_set
             self.horizon = horizon
             self.lookahead_tree = None
+            self.thompsonSampler = thompsonSampler
 
         def evaluate(self):
             root_node = SparseTree.Node(NodeType.Decision, 0, self.root_state, [])
@@ -82,7 +88,7 @@ class SparseTreeEvaluator(object):
         def __str__(self):
             children_str = "{"
             for child in self.lookahead_tree.children:
-                children_str += " " + str(child)
+                children_str += " " + str(child.node)
             children_str += "}"
             return str(self.lookahead_tree.node) + " -> " + children_str
 
@@ -145,12 +151,17 @@ class SparseTreeEvaluator(object):
                             lookahead_tree.append_val_to_parent(present_reward)
 
         def __get_actions(self, root):
-            return self.action_set
+            if self.thompsonSampler:
+                valid_actions = self.simulator.get_valid_actions(root.node.state,
+                                                                 self.action_set)
+                return self.thompsonSampler.get_action_set(valid_actions)
+            else:
+                return self.action_set
 
         def __get_states(self, root):
             ## complete neighbor set
             neighbors = []
-            for action in self.__get_actions(root):
+            for action in self.action_set:
                 n_orig_state, n_action, n_reward, n_new_state = self.simulator.sim(root.node.state, action)
                 if not list(n_new_state) == list(n_orig_state):
                     neighbors.append(n_new_state)
