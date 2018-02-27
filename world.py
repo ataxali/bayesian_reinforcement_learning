@@ -1,11 +1,11 @@
 import tkinter as tk
-import threading
 
 
 class World(object):
 
     def __init__(self, do_render=True, init_x=None, init_y=None):
-        self.master = tk.Tk()
+        self.do_render = do_render
+        if self.do_render: self.master = tk.Tk()
 
         self.triangle_size = 0.2
         self.cell_score_min = -0.2
@@ -14,7 +14,7 @@ class World(object):
         self.x, self.y = (5, 5)
         self.actions = ["up", "down", "left", "right"]
 
-        self.board = tk.Canvas(self.master, width=self.x*self.Width,
+        if self.do_render: self.board = tk.Canvas(self.master, width=self.x*self.Width,
                                height=self.y*self.Width)
         #player = (0, y-1)
         #origin = (0, y-1)
@@ -27,11 +27,11 @@ class World(object):
         self.cell_scores = {}
 
         if do_render: self.render_grid()
-
-        self.master.bind("<Up>", self.call_up)
-        self.master.bind("<Down>", self.call_down)
-        self.master.bind("<Right>", self.call_right)
-        self.master.bind("<Left>", self.call_left)
+        if self.do_render:
+            self.master.bind("<Up>", self.call_up)
+            self.master.bind("<Down>", self.call_down)
+            self.master.bind("<Right>", self.call_right)
+            self.master.bind("<Left>", self.call_left)
 
         if not all(map(lambda x: isinstance(x, int), [init_x, init_y])):
             self.player = (0, self.y - 1)
@@ -40,13 +40,14 @@ class World(object):
             self.origin = (init_x, init_y)
             self.player = self.origin
 
-        self.board.grid(row=0, column=0)
-        self.me = self.board.create_rectangle(
-            self.player[0] * self.Width + self.Width * 2 / 10,
-            self.player[1] * self.Width + self.Width * 2 / 10,
-            self.player[0] * self.Width + self.Width * 8 / 10,
-            self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
-            tag="me")
+        if self.do_render:
+            self.board.grid(row=0, column=0)
+            self.me = self.board.create_rectangle(
+                self.player[0] * self.Width + self.Width * 2 / 10,
+                self.player[1] * self.Width + self.Width * 2 / 10,
+                self.player[0] * self.Width + self.Width * 8 / 10,
+                self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
+                tag="me")
 
         if do_render: self.master.mainloop()
 
@@ -108,7 +109,8 @@ class World(object):
         self.score += self.walk_reward
         # print(self.player, self.score, new_x, new_y)
         if (new_x >= 0) and (new_x < self.x) and (new_y >= 0) and (new_y < self.y) and not ((new_x, new_y) in self.walls):
-            self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
+            if self.do_render:
+                self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
                               new_x*self.Width+self.Width*8/10, new_y*self.Width+self.Width*8/10)
             self.player = (new_x, new_y)
         for (i, j, c, w) in self.specials:

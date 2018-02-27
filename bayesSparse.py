@@ -26,6 +26,8 @@
 import enum
 from mdpSimulator import MDPSimulator
 
+print_debug = False
+
 NodeType = enum.Enum("NodeType", "Outcome Decision")
 
 
@@ -38,7 +40,7 @@ class SparseTree(object):
             self.state = state
             self.value = value
         def __str__(self):
-            return "[" + str(self.type) + ":" + str(self.depth) + "]"
+            return "[" + str(self.type) + ":" + str(self.depth) + ":" + str(self.value) + "]"
 
     def __init__(self, node, parent):
         self.node = node
@@ -81,9 +83,9 @@ class SparseTreeEvaluator(object):
         def __str__(self):
             children_str = "{"
             for child in self.lookahead_tree.children:
-                children_str += " " + str(child.node) + ":" + str(child.node.value)
+                children_str += " " + str(child)
             children_str += "}"
-            return str(self.lookahead_tree.node) + ":" + str(self.lookahead_tree.node.value) + " -> " + children_str
+            return str(self.lookahead_tree.node) + " -> " + children_str
 
         def __grow_sparse_tree(self, lookahead_tree):
             if (lookahead_tree.node.depth >= self.horizon) and (lookahead_tree.node.type == NodeType.Decision):
@@ -99,7 +101,7 @@ class SparseTreeEvaluator(object):
                     child = SparseTree(SparseTree.Node(NodeType.Outcome, lookahead_tree.node.depth,
                                                        child_state, [child_reward]), lookahead_tree)
                     lookahead_tree.add_child(child)
-                    print("Added outcome child depth",  child)
+                    if print_debug: print("Added outcome child depth",  child)
                     self.__grow_sparse_tree(child)
 
             if lookahead_tree.node.type == NodeType.Outcome:
@@ -107,7 +109,7 @@ class SparseTreeEvaluator(object):
                     child = SparseTree(SparseTree.Node(NodeType.Decision, lookahead_tree.node.depth+1,
                                                        state, []), lookahead_tree)
                     lookahead_tree.add_child(child)
-                    print("Added decision child depth", child)
+                    if print_debug: print("Added decision child depth", child)
                     self.__grow_sparse_tree(child)
 
         def __eval_sparse_tree(self, lookahead_tree):
@@ -126,7 +128,7 @@ class SparseTreeEvaluator(object):
                     max_value = max(lookahead_tree.node.value)
                     lookahead_tree.node.value = ([i for i, j in
                                                  enumerate(lookahead_tree.node.value)
-                                                 if j == max_value], max_value)
+                                                 if j == max_value], max_value, [lookahead_tree.node.value])
                 else:
                     # maximize the averages and discount the max
                     if len(lookahead_tree.node.value):
@@ -141,5 +143,6 @@ class SparseTreeEvaluator(object):
             neighbors = []
             for action in self.__get_actions(root):
                 n_orig_state, n_action, n_reward, n_new_state = self.simulator.sim(root.node.state, action)
-                neighbors.append(n_new_state)
+                if not list(n_new_state) == list(n_orig_state):
+                    neighbors.append(n_new_state)
             return neighbors
