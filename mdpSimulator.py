@@ -20,6 +20,8 @@ class WorldSimulator(MDPSimulator):
         self.use_cache = use_cache
 
     def __run(self, sim_world, sim_state, sim_action):
+        # maze doesnt need current state to simulate
+        # sim_world has initialized agent position
         r = -sim_world.score
         if sim_action == sim_world.actions[0]:
             sim_world.try_move(0, -1)

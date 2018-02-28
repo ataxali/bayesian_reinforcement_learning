@@ -85,19 +85,23 @@ def bootstrap_history_tester():
     print(history.get_action_count_reward_dict())
 
 
-
 def sparse_tree_model_tester():
+    global myWorlds
     t0 = time.time()
     root_state = [0, 4]
+    original_root = root_state
     action_set = ["up", "down", "left", "right"]
     simulator = WorldSimulator(use_cache=True)
     horizon = 5
-    branch_factor = 5
     prev_root = None
-    move_count = 0
-    history_manager = BootstrapHistoryManager(action_set, 0.5)
-    thompson_sampler = ThompsonSampler(history_manager)
-    #thompson_sampler = None
+    total_move_count = 0
+    episode_length = 10 # number of moves before posterior distributions are reset
+    episode_move_count = 0
+    history_manager = HistoryManager(action_set)
+    #history_manager = BootstrapHistoryManager(action_set, 0.5)
+    #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
+    thompson_sampler = None
+    move_pool = []
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
         ste = SparseTreeEvaluator(sim, root_s, actions, horizon, tsampler)
@@ -112,6 +116,12 @@ def sparse_tree_model_tester():
         return optimal_action, optimal_action_index, possible_actions, ste
 
     while True:
+        # check if end of training episode
+        if episode_length and episode_move_count > 1 and episode_move_count % episode_length == 0:
+            print('>> End of Training Episode <<')
+            history_manager.reset_history()
+            episode_move_count = 0
+
         print("Evaluating tree at ", root_state)
         optimal_action, optimal_action_index, possible_actions, ste = \
             eval_sparse_tree(simulator, root_state, action_set, horizon, thompson_sampler)
@@ -129,21 +139,26 @@ def sparse_tree_model_tester():
 
         prev_root = root_state
         root_state = list(new_state)
-        move_count += 1
+        episode_move_count += 1
+        total_move_count += 1
         print("Moving to ", root_state, "...")
+
         history_manager.add((orig_state, action, new_reward, new_state))
 
+        move_pool.append(optimal_action)
+
         if root_state == terminal_state_win:
-            print("Agent Won in ", move_count, " moves!")
+            print("Agent Won in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
             break
         if root_state == terminal_state_loss:
-            print("Agent Lost in ", move_count, " moves!")
+            print("Agent Lost in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
             break
 
+#sparse_tree_model_tester()
 
-sparse_tree_model_tester()
+
 
 #bootstrap_history_tester()
 #thompson_sampler_tester()
