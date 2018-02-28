@@ -77,6 +77,7 @@ class SparseTreeEvaluator(object):
             self.horizon = horizon
             self.lookahead_tree = None
             self.thompsonSampler = thompsonSampler
+            self.discount_factor = 0.05
 
         def evaluate(self):
             root_node = SparseTree.Node(NodeType.Decision, 0, self.root_state, [])
@@ -125,10 +126,10 @@ class SparseTreeEvaluator(object):
                 reward_avg = sum(lookahead_tree.node.value) / float(len(lookahead_tree.node.value))
                 if len(lookahead_tree.children) == 0:
                     depth_factor = max(self.horizon, lookahead_tree.node.depth) - lookahead_tree.node.depth + 1
-                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor))
+                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor) * self.discount_factor)
                 else:
                     # average present and future rewards
-                    lookahead_tree.append_val_to_parent(reward_avg)
+                    lookahead_tree.append_val_to_parent(reward_avg * self.discount_factor)
 
             if lookahead_tree.node.type == NodeType.Decision:
                 if lookahead_tree.node.depth == 0:

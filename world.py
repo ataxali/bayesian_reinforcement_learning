@@ -1,6 +1,4 @@
 import tkinter as tk
-import time
-import threading
 
 static_specials = [(7, 3, "red", -1), (9, 1, "green", 1)]
 static_x, static_y = (10, 6)
