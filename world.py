@@ -1,4 +1,6 @@
 import tkinter as tk
+import time
+import threading
 
 static_specials = [(7, 3, "red", -1), (9, 1, "green", 1)]
 static_x, static_y = (10, 6)
@@ -11,7 +13,7 @@ static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (5,3), (5,4), (5,5), (5,0
 
 class World(object):
 
-    def __init__(self, do_render=True, init_x=None, init_y=None):
+    def __init__(self, do_render=True, init_x=None, init_y=None, move_pool=None):
         self.do_render = do_render
         if self.do_render: self.master = tk.Tk()
 
@@ -54,8 +56,29 @@ class World(object):
                 self.player[0] * self.Width + self.Width * 8 / 10,
                 self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
                 tag="me")
+        if move_pool:
+            t = threading.Thread(target=self.run_pooled_moves, args=(move_pool,))
+            t.daemon = True
+            t.start()
 
         if do_render: self.master.mainloop()
+
+    def run_pooled_moves(self, move_pool):
+        time.sleep(1)
+        while len(move_pool) != 0:
+            action = move_pool[0]
+            if action == self.actions[0]:
+                self.try_move(0, -1)
+            elif action == self.actions[1]:
+                self.try_move(0, 1)
+            elif action == self.actions[2]:
+                self.try_move(-1, 0)
+            elif action == self.actions[3]:
+                self.try_move(1, 0)
+            else:
+                print("Unknown move", action)
+            move_pool.pop(0)
+            time.sleep(1)
 
 
     def create_triangle(self, i, j, action):

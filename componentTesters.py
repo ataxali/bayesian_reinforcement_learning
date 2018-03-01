@@ -88,6 +88,7 @@ def bootstrap_history_tester():
 def sparse_tree_model_tester():
     t0 = time.time()
     root_state = [0, 4]
+    original_root = root_state
     action_set = ["up", "down", "left", "right"]
     simulator = WorldSimulator(use_cache=True)
     horizon = 5
@@ -153,7 +154,7 @@ def sparse_tree_model_tester():
             print("Agent Lost in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
             break
-
+    world.World(init_x=original_root[0], init_y=original_root[1], move_pool=move_pool)
 sparse_tree_model_tester()
 
 
