@@ -184,8 +184,8 @@ class SparseTreeEvaluator(object):
             state_visit_count = self.history_manager.state_count_dict.get(state, 0)
             state_miss_count = sum(self.history_manager.state_count_dict.values()) - state_visit_count
             # alpha = state_miss_count + 0.1
-            alpha = n_neighbors
-            beta = (state_visit_count*n_neighbors) + 1
+            alpha = n_neighbors * max([len(self.history_manager.history), 1])
+            beta = max([(state_visit_count*n_neighbors), 1]) * max([len(self.history_manager.history), 1])
             # print("State:", state, "alpha:", alpha, "beta:", beta)
             state_prob = np.random.beta(alpha, beta)
             if self.use_constant_boundary:
