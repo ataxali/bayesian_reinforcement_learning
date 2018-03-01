@@ -86,20 +86,23 @@ def bootstrap_history_tester():
 
 
 def sparse_tree_model_tester():
-    t0 = time.time()
+    ###### Model Variables #####
     root_state = [0, 4]
-    original_root = root_state
-    action_set = ["up", "down", "left", "right"]
-    simulator = WorldSimulator(use_cache=True)
     horizon = 5
+    episode_length = 0  # number of moves before posterior distributions are reset
+    action_set = ["up", "down", "left", "right"]
+    history_manager = HistoryManager(action_set)
+    # history_manager = BootstrapHistoryManager(action_set, 0.5) 
+    # thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
+    thompson_sampler = None
+    ############################
+
+    t0 = time.time()
+    original_root = root_state
+    simulator = WorldSimulator(use_cache=True)
     prev_root = None
     total_move_count = 0
-    episode_length = 0 # number of moves before posterior distributions are reset
     episode_move_count = 0
-    history_manager = HistoryManager(action_set)
-    #history_manager = BootstrapHistoryManager(action_set, 0.5)
-    #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
-    thompson_sampler = None
     move_pool = []
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
