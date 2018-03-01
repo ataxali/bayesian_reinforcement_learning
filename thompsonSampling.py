@@ -43,10 +43,10 @@ class HistoryManager(object):
         if not self.state_count_dict.keys():
             "Print adding init state"
             self.state_count_dict[tuple(observation[0])] = 1
-        if observation[3] in self.state_count_dict:
-            self.state_count_dict[observation[3]] += 1
+        if tuple(observation[3]) in self.state_count_dict:
+            self.state_count_dict[tuple(observation[3])] += 1
         else:
-            self.state_count_dict[observation[3]] = 1
+            self.state_count_dict[tuple(observation[3])] = 1
 
 
 class BootstrapHistoryManager(HistoryManager):

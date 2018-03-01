@@ -11,7 +11,7 @@ import random
 # t.start()
 # world.start_sim(1, 3)
 
-from mdpSimulator import WorldSimulator
+from mdpSimulator import WorldSimulator, SnakeSimulator
 from bayesSparse import SparseTreeEvaluator
 from thompsonSampling import HistoryManager, BootstrapHistoryManager, ThompsonSampler
 
@@ -93,7 +93,7 @@ def sparse_tree_model_tester():
     episode_length = 0  # number of moves before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
-    # history_manager = BootstrapHistoryManager(action_set, 0.5)
+    #history_manager = BootstrapHistoryManager(action_set, 0.5)
     #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
     thompson_sampler = None
     discount_factor = 0.5
@@ -103,9 +103,11 @@ def sparse_tree_model_tester():
     t0 = time.time()
     original_root = root_state
     simulator = WorldSimulator(use_cache=True)
+    #simulator = SnakeSimulator()
     prev_root = None
     total_move_count = 0
     episode_move_count = 0
+    running_score = 0
     move_pool = []
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
@@ -154,6 +156,8 @@ def sparse_tree_model_tester():
         print("Moving to ", root_state, "...")
 
         history_manager.add((orig_state, action, new_reward, new_state))
+        running_score += new_reward
+        print("Score:", running_score)
 
         move_pool.append(optimal_action)
 
@@ -166,9 +170,11 @@ def sparse_tree_model_tester():
             print("Time Taken: ", time.time()-t0)
             break
     world.World(init_x=original_root[0], init_y=original_root[1], move_pool=move_pool)
+
 sparse_tree_model_tester()
 
-
+#sim = SnakeSimulator()
+#print(sim.get_valid_actions([100, 100], ["up", "down", "left", "right"]))
 
 #bootstrap_history_tester()
 #thompson_sampler_tester()

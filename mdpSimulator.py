@@ -1,7 +1,5 @@
 import world
-import threading
-import time
-
+import snake
 
 class MDPSimulator(object):
     """Abstract class for MDP Simulator"""
@@ -64,6 +62,51 @@ class WorldSimulator(MDPSimulator):
         init_x, init_y = self.get_x_y(root)
         for action in actions:
             sim_world = world.World(self.do_render, init_x, init_y)
+            sim_r, sim_n_s = self.__run(sim_world, root, action)
+            if not list(sim_n_s) == list(root):
+                valid_actions.append(action)
+        if self.do_render: sim_world.destroy()
+        return valid_actions
+
+
+class SnakeSimulator(MDPSimulator):
+
+    def __init__(self, do_render=False):
+        # perhaps init threadpool here
+        self.do_render = do_render
+
+    def __run(self, sim_world, sim_state, sim_action):
+        # maze doesnt need current state to simulate
+        # sim_world has initialized agent position
+        if sim_action == "up":
+            return sim_world.on_up(None)
+        elif sim_action == "left":
+            return sim_world.on_left(None)
+        elif sim_action == "down":
+            return sim_world.on_down(None)
+        elif sim_action == "right":
+            return sim_world.on_right(None)
+        else:
+            raise Exception("Unexpected snake game input...")
+
+    def sim(self, state, action):
+        init_x, init_y = self.get_x_y(state)
+        sim_world = snake.Application(self.do_render, init_x, init_y)
+        x = self.__run(sim_world, state, action)
+        sim_r, sim_n_s = self.__run(sim_world, state, action)
+        if self.do_render: sim_world.destroy()
+        # return values are: <orig_state, action, reward, new_state>
+        # print("Sim Result: ", state, action, sim_r, sim_n_s)
+        return state, action, sim_r, sim_n_s
+
+    def get_x_y(self, state):
+        return state[0], state[1]
+
+    def get_valid_actions(self, root, actions):
+        valid_actions = []
+        init_x, init_y = self.get_x_y(root)
+        for action in actions:
+            sim_world = snake.Application(self.do_render, init_x, init_y)
             sim_r, sim_n_s = self.__run(sim_world, root, action)
             if not list(sim_n_s) == list(root):
                 valid_actions.append(action)

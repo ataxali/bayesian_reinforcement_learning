@@ -129,10 +129,14 @@ class SparseTreeEvaluator(object):
                 self.__eval_sparse_tree(child)
 
             if lookahead_tree.node.type == NodeType.Outcome:
-                reward_avg = sum(lookahead_tree.node.value) / float(len(lookahead_tree.node.value))
+                state_reward = lookahead_tree.node.value.pop(0)
+                if lookahead_tree.node.value:
+                    reward_avg = state_reward + (sum(lookahead_tree.node.value) / float(len(lookahead_tree.node.value)))
+                else:
+                    reward_avg = state_reward
                 if len(lookahead_tree.children) == 0:
                     depth_factor = max(self.horizon, lookahead_tree.node.depth) - lookahead_tree.node.depth + 1
-                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor))
+                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor) * self.discount_factor)
                 else:
                     # average present and future rewards
                     lookahead_tree.append_val_to_parent(reward_avg * self.discount_factor)
@@ -185,7 +189,7 @@ class SparseTreeEvaluator(object):
             return neighbors
 
         def __posterior_state(self, state, n_neighbors):
-            state_visit_count = self.history_manager.state_count_dict.get(state, 0)
+            state_visit_count = self.history_manager.state_count_dict.get(tuple(state), 0)
             state_miss_count = sum(self.history_manager.state_count_dict.values()) - state_visit_count
             # alpha = state_miss_count + 0.1
             alpha = n_neighbors * max([len(self.history_manager.history), 1])
