@@ -89,7 +89,7 @@ def bootstrap_history_tester():
 def sparse_tree_model_tester():
     ###### Model Variables #####
     root_state = [0, 6]
-    horizon = 6
+    horizon = 5
     episode_length = 10  # number of moves before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)

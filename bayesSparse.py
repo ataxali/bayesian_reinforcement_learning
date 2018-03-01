@@ -171,7 +171,7 @@ class SparseTreeEvaluator(object):
             for action in self.action_set:
                 n_orig_state, n_action, n_reward, n_new_state = self.simulator.sim(root.node.state, action)
                 if not list(n_new_state) == list(n_orig_state):
-                    posterior_result = self.__posterior_state(n_new_state)
+                    posterior_result = self.__posterior_state(n_new_state, len(self.action_set))
                     if posterior_result:
                         neighbors.append(n_new_state)
                     else:
@@ -180,11 +180,12 @@ class SparseTreeEvaluator(object):
             # return rejected_neighbors
             return neighbors
 
-        def __posterior_state(self, state):
+        def __posterior_state(self, state, n_neighbors):
             state_visit_count = self.history_manager.state_count_dict.get(state, 0)
             state_miss_count = sum(self.history_manager.state_count_dict.values()) - state_visit_count
-            alpha = state_miss_count + 1
-            beta = state_visit_count + 1
+            # alpha = state_miss_count + 0.1
+            alpha = n_neighbors
+            beta = (state_visit_count*n_neighbors) + 1
             # print("State:", state, "alpha:", alpha, "beta:", beta)
             state_prob = np.random.beta(alpha, beta)
             if self.use_constant_boundary:

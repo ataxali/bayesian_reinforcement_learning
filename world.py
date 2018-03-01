@@ -28,7 +28,7 @@ class World(object):
                                height=self.y*self.Width)
         self.score = 1
         self.restart = False
-        self.walk_reward = -0.1
+        self.walk_reward = -0.3
 
         self.walls = static_walls
         self.specials = static_specials
