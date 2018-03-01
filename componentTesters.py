@@ -96,6 +96,8 @@ def sparse_tree_model_tester():
     # history_manager = BootstrapHistoryManager(action_set, 0.5)
     #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
     thompson_sampler = None
+    discount_factor = 0.5
+    use_state_posterior = True
     ############################
 
     t0 = time.time()
@@ -107,7 +109,11 @@ def sparse_tree_model_tester():
     move_pool = []
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
-        ste = SparseTreeEvaluator(sim, root_s, actions, horizon, history_manager, tsampler)
+        ste = SparseTreeEvaluator(sim, root_s, actions, horizon,
+                                  history_manager=history_manager,
+                                  thompson_sampler=tsampler,
+                                  discount_factor=discount_factor,
+                                  use_posterior=use_state_posterior)
         ste.evaluate()
         print(ste)
         #optimal_action_index = ste.lookahead_tree.node.value[0][0]

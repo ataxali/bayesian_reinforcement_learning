@@ -71,7 +71,7 @@ class SparseTreeEvaluator(object):
 
         def __init__(self, mdp_simulator, root_state, action_set, horizon,
                      history_manager, thompson_sampler=None, discount_factor=0.05,
-                     use_constant_boundary=0.5):
+                     use_constant_boundary=0.5, use_posterior=True):
             if not isinstance(mdp_simulator, MDPSimulator):
                 raise Exception('Sparse tree evaluator needs MDP Simulator!')
             self.simulator = mdp_simulator
@@ -83,6 +83,7 @@ class SparseTreeEvaluator(object):
             self.discount_factor = discount_factor
             self.history_manager = history_manager
             self.use_constant_boundary = use_constant_boundary
+            self.use_posterior = use_posterior
 
         def evaluate(self):
             root_node = SparseTree.Node(NodeType.Decision, 0, self.root_state, [])
@@ -131,7 +132,7 @@ class SparseTreeEvaluator(object):
                 reward_avg = sum(lookahead_tree.node.value) / float(len(lookahead_tree.node.value))
                 if len(lookahead_tree.children) == 0:
                     depth_factor = max(self.horizon, lookahead_tree.node.depth) - lookahead_tree.node.depth + 1
-                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor) * self.discount_factor)
+                    lookahead_tree.append_val_to_parent(reward_avg * float(depth_factor))
                 else:
                     # average present and future rewards
                     lookahead_tree.append_val_to_parent(reward_avg * self.discount_factor)
@@ -171,11 +172,14 @@ class SparseTreeEvaluator(object):
             for action in self.action_set:
                 n_orig_state, n_action, n_reward, n_new_state = self.simulator.sim(root.node.state, action)
                 if not list(n_new_state) == list(n_orig_state):
-                    posterior_result = self.__posterior_state(n_new_state, len(self.action_set))
-                    if posterior_result:
-                        neighbors.append(n_new_state)
+                    if self.use_posterior:
+                        posterior_result = self.__posterior_state(n_new_state, len(self.action_set))
+                        if posterior_result:
+                            neighbors.append(n_new_state)
+                        else:
+                            rejected_neighbors.append(n_new_state)
                     else:
-                        rejected_neighbors.append(n_new_state)
+                        neighbors.append(n_new_state)
             # if neighbors: return neighbors
             # return rejected_neighbors
             return neighbors
