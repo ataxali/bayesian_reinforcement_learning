@@ -7,12 +7,14 @@ class HistoryManager(object):
     def __init__(self, actions):
         self.history = list()
         self.action_count_reward_dict = dict.fromkeys(actions, (0, 0))
+        self.state_count_dict = dict()
         self.total_rewards = 0
         self.action_set = actions
 
     def reset_history(self):
         self.history = list()
         self.action_count_reward_dict = dict.fromkeys(self.action_set, (0, 0))
+        self.state_count_dict = dict()
         self.total_rewards = 0
 
     def get_action_set(self):
@@ -38,6 +40,13 @@ class HistoryManager(object):
         else:
             raise Exception(str(observation[1]),
                             " does not exist in action set dictionary")
+        if not self.state_count_dict.keys():
+            "Print adding init state"
+            self.state_count_dict[tuple(observation[0])] = 1
+        if observation[3] in self.state_count_dict:
+            self.state_count_dict[observation[3]] += 1
+        else:
+            self.state_count_dict[observation[3]] = 1
 
 
 class BootstrapHistoryManager(HistoryManager):

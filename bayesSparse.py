@@ -25,6 +25,7 @@
 
 import enum
 from mdpSimulator import MDPSimulator
+import numpy as np
 
 print_debug = False
 NodeType = enum.Enum("NodeType", "Outcome Decision")
@@ -68,7 +69,9 @@ class SparseTree(object):
 
 class SparseTreeEvaluator(object):
 
-        def __init__(self, mdp_simulator, root_state, action_set, horizon, thompsonSampler=None):
+        def __init__(self, mdp_simulator, root_state, action_set, horizon,
+                     history_manager, thompson_sampler=None, discount_factor=0.05,
+                     use_constant_boundary=0.5):
             if not isinstance(mdp_simulator, MDPSimulator):
                 raise Exception('Sparse tree evaluator needs MDP Simulator!')
             self.simulator = mdp_simulator
@@ -76,8 +79,10 @@ class SparseTreeEvaluator(object):
             self.action_set = action_set
             self.horizon = horizon
             self.lookahead_tree = None
-            self.thompsonSampler = thompsonSampler
-            self.discount_factor = 0.05
+            self.thompson_sampler = thompson_sampler
+            self.discount_factor = discount_factor
+            self.history_manager = history_manager
+            self.use_constant_boundary = use_constant_boundary
 
         def evaluate(self):
             root_node = SparseTree.Node(NodeType.Decision, 0, self.root_state, [])
@@ -152,18 +157,45 @@ class SparseTreeEvaluator(object):
                             lookahead_tree.append_val_to_parent(present_reward)
 
         def __get_actions(self, root):
-            if self.thompsonSampler:
+            if self.thompson_sampler:
                 valid_actions = self.simulator.get_valid_actions(root.node.state,
                                                                  self.action_set)
-                return self.thompsonSampler.get_action_set(valid_actions)
+                return self.thompson_sampler.get_action_set(valid_actions)
             else:
                 return self.action_set
 
         def __get_states(self, root):
             ## complete neighbor set
             neighbors = []
+            rejected_neighbors = []
             for action in self.action_set:
                 n_orig_state, n_action, n_reward, n_new_state = self.simulator.sim(root.node.state, action)
                 if not list(n_new_state) == list(n_orig_state):
-                    neighbors.append(n_new_state)
+                    posterior_result = self.__posterior_state(n_new_state)
+                    if posterior_result:
+                        neighbors.append(n_new_state)
+                    else:
+                        rejected_neighbors.append(n_new_state)
+            # if neighbors: return neighbors
+            # return rejected_neighbors
             return neighbors
+
+        def __posterior_state(self, state):
+            state_visit_count = self.history_manager.state_count_dict.get(state, 0)
+            state_miss_count = sum(self.history_manager.state_count_dict.values()) - state_visit_count
+            alpha = state_miss_count + 1
+            beta = state_visit_count + 1
+            # print("State:", state, "alpha:", alpha, "beta:", beta)
+            state_prob = np.random.beta(alpha, beta)
+            if self.use_constant_boundary:
+                prob_threshold = self.use_constant_boundary
+            else:
+                # use float(alpha)/float(alpha+beta) for mean
+                # otherwise median
+                prob_threshold = (alpha - float(1) / float(3)) / (
+                    alpha + beta - float(2) / float(3))
+
+            if state_prob > prob_threshold:
+                return state
+            else:
+                return None

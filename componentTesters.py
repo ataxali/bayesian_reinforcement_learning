@@ -40,7 +40,8 @@ def sparse_tree_tester():
     action_set = ["up", "down", "left", "right"]
     horizon = 6
     branch_factor = 5
-    ste = SparseTreeEvaluator(simulator, root_state, action_set, horizon)
+    history_manager = HistoryManager(action_set)
+    ste = SparseTreeEvaluator(simulator, root_state, action_set, history_manager, horizon)
     ste.evaluate()
     print(ste)
     print(random.choice(ste.lookahead_tree.node.value[0]))
@@ -87,13 +88,13 @@ def bootstrap_history_tester():
 
 def sparse_tree_model_tester():
     ###### Model Variables #####
-    root_state = [0, 4]
-    horizon = 5
-    episode_length = 0  # number of moves before posterior distributions are reset
+    root_state = [0, 6]
+    horizon = 6
+    episode_length = 10  # number of moves before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
-    # history_manager = BootstrapHistoryManager(action_set, 0.5) 
-    # thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
+    # history_manager = BootstrapHistoryManager(action_set, 0.5)
+    #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
     thompson_sampler = None
     ############################
 
@@ -106,9 +107,10 @@ def sparse_tree_model_tester():
     move_pool = []
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
-        ste = SparseTreeEvaluator(sim, root_s, actions, horizon, tsampler)
+        ste = SparseTreeEvaluator(sim, root_s, actions, horizon, history_manager, tsampler)
         ste.evaluate()
         print(ste)
+        #optimal_action_index = ste.lookahead_tree.node.value[0][0]
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
         possible_actions = list(sim.get_valid_actions(root_s, actions))
         print("Possible actions: ", possible_actions)

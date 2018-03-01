@@ -9,6 +9,9 @@ class MDPSimulator(object):
         """ Must return <orig_state, action, reward, new_state> tuple """
         raise NotImplementedError("Unimplemented method!")
 
+    def get_valid_actions(self, root, actions):
+        raise NotImplementedError("Unimplemented method!")
+
 
 class WorldSimulator(MDPSimulator):
     WORLD_SIM_CACHE = dict()
