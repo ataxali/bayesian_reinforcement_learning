@@ -87,7 +87,7 @@ class FileLogger:
         self.filename = filename
         append_active_logger(self)
         logger.info('==============================')
-        logger.info('Tetris File-Logger Started...')
+        logger.info('File-Logger Started...')
 
     def get_logger(self):
         return self.logger
@@ -110,7 +110,7 @@ class ConsoleLogger:
         self.name = name
         append_active_logger(self)
         logger.info('================================')
-        logger.info('Tetris Console-Logger Started...')
+        logger.info('Console-Logger Started...')
 
     def get_logger(self):
         return self.logger
