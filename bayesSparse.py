@@ -24,10 +24,11 @@
 #         return avg(node.rewards + values)
 
 import enum
-from mdpSimulator import MDPSimulator
 import numpy as np
+from global_constants import print_debug
+from mdpSimulator import MDPSimulator
 
-print_debug = False
+
 NodeType = enum.Enum("NodeType", "Outcome Decision")
 
 

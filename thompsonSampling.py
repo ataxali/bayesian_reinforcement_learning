@@ -1,6 +1,5 @@
 import numpy as np
-
-print_debug = False
+from global_constants import print_debug
 
 
 class ThompsonSampler(object):
