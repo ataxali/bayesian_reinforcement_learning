@@ -2,7 +2,8 @@ import tkinter as tk
 import time
 import threading
 
-static_specials = [(7, 3, "red", -1), (9, 1, "green", 1)]
+# (x, y, type, reward, velocity)
+static_specials = [(7, 3, "red", -1, "up"), (8, 5, "red", -1, "left"), (9, 1, "green", 1, "NA")]
 static_x, static_y = (10, 7)
 static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (5,3), (5,4), (5,5), (5,0)]
 
@@ -112,7 +113,7 @@ class World(object):
                 for action in self.actions:
                     temp[action] = self.create_triangle(i, j, action)
                     self.cell_scores[(i,j)] = temp
-        for (i, j, c, w) in self.specials:
+        for (i, j, c, w, v) in self.specials:
             self.board.create_rectangle(i*self.Width, j*self.Width,
                                         (i+1)*self.Width, (j+1)*self.Width, fill=c, width=1)
         for (i, j) in self.walls:
@@ -131,14 +132,81 @@ class World(object):
         color = "#" + red + green + "00"
         self.board.itemconfigure(triangle, fill=color)
 
+    def update_specials(self):
+        red_specials = []
+        green_specials = []
+        updated_red_specials = []
+        for special in self.specials:
+            if special[2] == "red":
+                red_specials.append(special)
+            if special[2] == "green":
+                green_specials.append(special)
+        for (i, j, c, w, v) in red_specials:
+            if v == "up":
+                j -= 1
+                if (j >= 0) and (j < self.y) and not ((i, j) in self.walls):
+                    pass # pass, all good
+                else:
+                    v = "down"
+                    j += 2
+            elif v == "down":
+                j += 1
+                if (j >= 0) and (j < self.y) and not ((i, j) in self.walls):
+                    pass  # pass, all good
+                else:
+                    v = "up"
+                    j -= 2
+            elif v == "left":
+                i -= 1
+                if (i >= 0) and (i < self.x) and not ((i, j) in self.walls):
+                    pass  # pass, all good
+                else:
+                    v = "right"
+                    i += 2
+            elif v == "right":
+                i += 1
+                if (i >= 0) and (i < self.x) and not ((i, j) in self.walls):
+                    pass  # pass, all good
+                else:
+                    v = "left"
+                    i -= 2
+            updated_red_specials.append((i, j, c, w, v))
+        return updated_red_specials + green_specials
+
     def try_move(self, dx, dy):
         #if self.restart:
         #    self.restart_game()
 
         # no movement out of terminal states
-        for (i, j, c, w) in self.specials:
+        old_specials = self.specials.copy()
+        self.specials = self.update_specials()
+        for (i, j, c, w, v) in self.specials:
             if self.player[0] == i and self.player[1] == j:
                 self.score += w
+                if self.do_render:
+                    self.board.tag_raise(self.me)
+                    for (i, j, c, w, v) in old_specials:
+                        if c == "red":
+                            self.board.create_rectangle(i * self.Width,
+                                                        j * self.Width,
+                                                        (i + 1) * self.Width,
+                                                        (j + 1) * self.Width,
+                                                        fill='white',
+                                                        width=1)
+                    self.board.coords(self.me,
+                                      self.player[0] * self.Width + self.Width * 2 / 10,
+                                      self.player[1] * self.Width + self.Width * 2 / 10,
+                                      self.player[0] * self.Width + self.Width * 8 / 10,
+                                      self.player[1] * self.Width + self.Width * 8 / 10)
+                    self.board.tag_raise(self.me)
+                    for (i, j, c, w, v) in self.specials:
+                        self.board.create_rectangle(i * self.Width,
+                                                    j * self.Width,
+                                                    (i + 1) * self.Width,
+                                                    (j + 1) * self.Width,
+                                                    fill=c,
+                                                    width=1)
+                    self.board.tag_raise(self.me)
                 return
 
         new_x = self.player[0] + dx
@@ -147,10 +215,24 @@ class World(object):
         # print(self.player, self.score, new_x, new_y)
         if (new_x >= 0) and (new_x < self.x) and (new_y >= 0) and (new_y < self.y) and not ((new_x, new_y) in self.walls):
             if self.do_render:
+                for (i, j, c, w, v) in old_specials:
+                    if c == "red":
+                        self.board.create_rectangle(i * self.Width, j * self.Width,
+                                                    (i + 1) * self.Width,
+                                                    (j + 1) * self.Width, fill='white',
+                                                    width=1)
                 self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
                               new_x*self.Width+self.Width*8/10, new_y*self.Width+self.Width*8/10)
+                self.board.tag_raise(self.me)
+                for (i, j, c, w, v) in self.specials:
+                    self.board.create_rectangle(i * self.Width, j * self.Width,
+                                                (i + 1) * self.Width,
+                                                (j + 1) * self.Width, fill=c,
+                                                width=1)
             self.player = (new_x, new_y)
-        for (i, j, c, w) in self.specials:
+        else:
+            self.specials = old_specials
+        for (i, j, c, w, v) in self.specials:
             if new_x == i and new_y == j:
                 self.score -= self.walk_reward
                 self.score += w
@@ -190,3 +272,5 @@ class World(object):
     def quit(self):
         self.master.destroy()
 
+
+World()
