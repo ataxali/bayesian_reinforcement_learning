@@ -4,14 +4,14 @@ import tkinter
 
 HEAD_CHARACTER = 'ö'
 FOOD_CHARACTERS = string.ascii_letters
+FOOD_POSITIONS = [[150,150], [100, 100], [50, 50], [10, 50]]
 
 
 class Application:
     TITLE = 'Snake'
-    SIZE = 300, 300
+    SIZE = 200, 200
     GAME_OVER_SCORE = -10
     WALK_SCORE = -0.5
-
 
     def __init__(self, master, init_x, init_y):
         self.master = master
@@ -24,7 +24,7 @@ class Application:
         self.food_position = None
         self.direction = None
         self.moved = True
-        self.food_positions = [[150,150], [200, 200], [175, 250], [75, 250]]
+        self.food_positions = FOOD_POSITIONS.copy()
 
         self.running = False
         self.init()
@@ -149,7 +149,7 @@ class Application:
 
         self.running = False
         #self.start_button.configure(text='Start')
-        score = len(self.segments) * 10
+        score = len(self.segments) * 100
         if self.master:
             self.canvas.create_text((round(width // 2, -1), round(height // 2, -1)), text='Game Over! Your score was: %d' % score)
 
@@ -162,7 +162,7 @@ class Application:
         if not self.running:
             return Application.GAME_OVER_SCORE, self.head_position
         else:
-            return ((orig_length - len(self.segments))*10) + Application.WALK_SCORE, self.head_position
+            return ((orig_length - len(self.segments))*100) + Application.WALK_SCORE, self.head_position
 
     def on_down(self, event):
         orig_length = len(self.segments)
@@ -173,7 +173,7 @@ class Application:
         if not self.running:
             return Application.GAME_OVER_SCORE, self.head_position
         else:
-            return ((orig_length - len(self.segments))*10) + Application.WALK_SCORE, self.head_position
+            return ((orig_length - len(self.segments))*100) + Application.WALK_SCORE, self.head_position
 
     def on_left(self, event):
         orig_length = len(self.segments)
@@ -184,7 +184,7 @@ class Application:
         if not self.running:
             return Application.GAME_OVER_SCORE, self.head_position
         else:
-            return ((orig_length - len(self.segments))*10) + Application.WALK_SCORE, self.head_position
+            return ((orig_length - len(self.segments))*100) + Application.WALK_SCORE, self.head_position
 
     def on_right(self, event):
         orig_length = len(self.segments)
@@ -195,7 +195,7 @@ class Application:
         if not self.running:
             return Application.GAME_OVER_SCORE, self.head_position
         else:
-            return ((orig_length - len(self.segments))*10) + Application.WALK_SCORE, self.head_position
+            return ((orig_length - len(self.segments))*100) + Application.WALK_SCORE, self.head_position
 
 
 def main():
