@@ -2,18 +2,10 @@ import world
 import threading
 import time
 import random
-
-# def run():
-#     pass
-#
-# t = threading.Thread(target=run)
-# t.daemon = True
-# t.start()
-# world.start_sim(1, 3)
-
-from mdpSimulator import WorldSimulator, SnakeSimulator
+from mdpSimulator import WorldSimulator
 from bayesSparse import SparseTreeEvaluator
-from thompsonSampling import HistoryManager, BootstrapHistoryManager, ThompsonSampler
+from historyManager import HistoryManager, BootstrapHistoryManager
+from thompsonSampling import ThompsonSampler
 
 terminal_state_win = [world.static_specials[1][0], world.static_specials[1][1]]
 terminal_state_loss = [world.static_specials[0][0], world.static_specials[0][1]]
