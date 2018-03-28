@@ -43,3 +43,5 @@ class ThompsonSampler(object):
         if len(reduced_action_set) == 0:
             reduced_action_set = action_set
         return reduced_action_set
+
+
