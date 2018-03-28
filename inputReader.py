@@ -6,13 +6,15 @@ import queue
 
 
 class InputHandler(object):
-    """Abstract class for input handler, given to tetris.Game()"""
+    """Abstract class for input handler, given to game or game simulator"""
     def get_next_key(self):
         raise NotImplementedError("Unimplemented method!")
 
 
 class KeyInputHandler(InputHandler):
-    keys = enum.Enum('keys', 'UP DOWN LEFT RIGHT ROTATE_L ROTATE_R PASS')
+    # current only supports inputs for maze game
+    # add to enum if other keys need to be handled
+    keys = enum.Enum('keys', 'UP DOWN LEFT RIGHT')
 
     def __init__(self, log):
         self.log = log
@@ -34,12 +36,6 @@ class KeyInputHandler(InputHandler):
                 next_key = self.keys.LEFT
             elif input == 'right':
                 next_key = self.keys.RIGHT
-            elif input == 'rr':
-                next_key = self.keys.ROTATE_R
-            elif input == 'rl':
-                next_key = self.keys.ROTATE_L
-            elif input == 'pass':
-                next_key = self.keys.PASS
             else:
                 logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)
             if next_key is not None:
@@ -83,9 +79,9 @@ class FileTailer(threading.Thread):
 
 
 class KeyListener(threading.Thread):
-    # Constants for user input
-    m_keys = {'w': 'up', 's': 'down', 'a': 'left',
-              'd': 'right', 'f': 'rl', 'g': 'rr', ' ': 'pass'}
+    # key inputs captured by std-in
+    # constants for user input
+    m_keys = {'w': 'up', 's': 'down', 'a': 'left', 'd': 'right'}
 
     def __init__(self, handler, log):
         super(KeyListener, self).__init__()
