@@ -25,11 +25,11 @@ class HistoryManager(object):
         return self.total_rewards
 
     def add(self, observation):
-        # each observation must be <orig_state, action, reward, new_state>
+        # each observation must be <orig_state, action, reward, new_state, time>
         if not isinstance(observation, tuple):
             observation = tuple(observation)
-        if not len(observation) == 4:
-            raise Exception("<orig_state, action, reward, new_state>")
+        if not len(observation) == 5:
+            raise Exception("<orig_state, action, reward, new_state, time>")
         self.history.append(observation)
         if observation[1] in self.action_count_reward_dict:
             count, reward = self.action_count_reward_dict[observation[1]]

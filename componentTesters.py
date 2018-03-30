@@ -85,7 +85,7 @@ def bootstrap_history_tester():
 def sparse_tree_model_tester():
     ###### Model Variables #####
     root_state = [0, 6]
-    horizon = 5
+    horizon = 6
     episode_length = 0  # number of moves before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
@@ -151,7 +151,7 @@ def sparse_tree_model_tester():
         total_move_count += 1
         print("Moving to ", root_state, "...")
 
-        history_manager.add((orig_state, action, new_reward, new_state))
+        history_manager.add((orig_state, action, new_reward, new_state, total_move_count))
         running_score += new_reward
         print("Score:", running_score)
 

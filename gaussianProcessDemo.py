@@ -39,7 +39,7 @@ t = np.atleast_2d(np.linspace(0, 40, 40)).T
 #kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
 #gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
 kernel = ExpSineSquared(length_scale=1, periodicity=1.0, periodicity_bounds=(2, 10),
-                        length_scale_bounds=(1, 3))
+                        length_scale_bounds=(1, 5))
 # kernel = Matern(length_scale=1, nu=1.5)
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, alpha=0.01)
 
