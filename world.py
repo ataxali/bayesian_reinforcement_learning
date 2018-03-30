@@ -17,7 +17,7 @@ static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3, 4), (5, 3), (5, 4), (5, 5), 
 class World(object):
 
     def __init__(self, do_render=True, init_x=None, init_y=None, move_pool=None,
-                 input_reader=None):
+                 input_reader=None, specials=static_specials, do_restart=False):
         self.do_render = do_render
         if self.do_render: self.master = tk.Tk()
 
@@ -27,6 +27,7 @@ class World(object):
         self.Width = 50
         self.x, self.y = static_x_dim, static_y_dim
         self.actions = ["up", "down", "left", "right"]
+        self.do_restart = do_restart
 
         if self.do_render: self.board = tk.Canvas(self.master, width=self.x*self.Width,
                                height=self.y*self.Width)
@@ -35,7 +36,8 @@ class World(object):
         self.walk_reward = -0.1
 
         self.walls = static_walls
-        self.specials = static_specials
+        self.original_specials = specials.copy()
+        self.specials = specials
         self.cell_scores = {}
 
         if do_render: self.render_grid()
@@ -89,7 +91,7 @@ class World(object):
                 self.restart_game()
             else:
                 print("Unknown key input:", str(next_key))
-            time.sleep(1)
+            time.sleep(0.5)
 
     def run_pooled_moves(self, move_pool):
         time.sleep(1)
@@ -106,7 +108,7 @@ class World(object):
             else:
                 print("Unknown move", action)
             move_pool.pop(0)
-            time.sleep(1)
+            time.sleep(0.5)
 
     def create_triangle(self, i, j, action):
         if action == self.actions[0]:
@@ -169,7 +171,8 @@ class World(object):
         self.board.itemconfigure(triangle, fill=color)
 
     def update_specials(self):
-        return static_specials
+        # constant specials
+        # return self.specials
         red_specials = []
         green_specials = []
         updated_red_specials = []
@@ -223,82 +226,74 @@ class World(object):
             print("Unknown move index", move_idx)
 
     def try_move(self, dx, dy):
-        #if self.restart:
-        #    self.restart_game()
-
         # no movement out of terminal states
-        old_specials = self.specials.copy()
-        self.specials = self.update_specials()
         for (i, j, c, w, v) in self.specials:
             if self.player[0] == i and self.player[1] == j:
-                self.score += w
-                if self.do_render:
-                    self.board.tag_raise(self.me)
-                    for (i, j, c, w, v) in old_specials:
-                        if c == "red":
-                            self.board.create_rectangle(i * self.Width,
-                                                        j * self.Width,
-                                                        (i + 1) * self.Width,
-                                                        (j + 1) * self.Width,
-                                                        fill='white',
-                                                        width=1)
-                    self.board.coords(self.me,
-                                      self.player[0] * self.Width + self.Width * 2 / 10,
-                                      self.player[1] * self.Width + self.Width * 2 / 10,
-                                      self.player[0] * self.Width + self.Width * 8 / 10,
-                                      self.player[1] * self.Width + self.Width * 8 / 10)
-                    self.board.tag_raise(self.me)
-                    for (i, j, c, w, v) in self.specials:
-                        self.board.create_rectangle(i * self.Width,
-                                                    j * self.Width,
-                                                    (i + 1) * self.Width,
-                                                    (j + 1) * self.Width,
-                                                    fill=c,
-                                                    width=1)
-                    self.board.tag_raise(self.me)
-                return
+                if self.do_restart:
+                    print("Restarting game...")
+                    self.restart_game()
+                    print("Game restarted...")
+                    return
+                else:
+                    self.score += w
+                    return
 
+        old_specials = self.specials.copy()
+        self.specials = self.update_specials()
         new_x = self.player[0] + dx
         new_y = self.player[1] + dy
         self.score += self.walk_reward
-        # print(self.player, self.score, new_x, new_y)
         if (new_x >= 0) and (new_x < self.x) and (new_y >= 0) and (new_y < self.y) and not ((new_x, new_y) in self.walls):
-            if self.do_render:
-                for (i, j, c, w, v) in old_specials:
-                    if c == "red":
-                        self.board.create_rectangle(i * self.Width, j * self.Width,
-                                                    (i + 1) * self.Width,
-                                                    (j + 1) * self.Width, fill='white',
-                                                    width=1)
-                self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
-                              new_x*self.Width+self.Width*8/10, new_y*self.Width+self.Width*8/10)
-                self.board.tag_raise(self.me)
-                for (i, j, c, w, v) in self.specials:
-                    self.board.create_rectangle(i * self.Width, j * self.Width,
-                                                (i + 1) * self.Width,
-                                                (j + 1) * self.Width, fill=c,
-                                                width=1)
+            # if self.do_render:
+            #     for (i, j, c, w, v) in old_specials:
+            #         if c == "red":
+            #             self.board.create_rectangle(i * self.Width, j * self.Width,
+            #                                         (i + 1) * self.Width,
+            #                                         (j + 1) * self.Width, fill='white',
+            #                                         width=1)
+            #     self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
+            #                   new_x*self.Width+self.Width*8/10, new_y*self.Width+self.Width*8/10)
+            #     self.board.tag_raise(self.me)
+            #     for (i, j, c, w, v) in self.specials:
+            #         self.board.create_rectangle(i * self.Width, j * self.Width,
+            #                                     (i + 1) * self.Width,
+            #                                     (j + 1) * self.Width, fill=c,
+            #                                     width=1)
             self.player = (new_x, new_y)
-        else:
-            self.specials = old_specials
+
+        if self.do_render:
+            self.board.tag_raise(self.me)
+            for (i, j, c, w, v) in old_specials:
+                if c == "red":
+                    self.board.create_rectangle(i * self.Width,
+                                                j * self.Width,
+                                                (i + 1) * self.Width,
+                                                (j + 1) * self.Width,
+                                                fill='white',
+                                                width=1)
+            self.board.coords(self.me,
+                              self.player[
+                                  0] * self.Width + self.Width * 2 / 10,
+                              self.player[
+                                  1] * self.Width + self.Width * 2 / 10,
+                              self.player[
+                                  0] * self.Width + self.Width * 8 / 10,
+                              self.player[
+                                  1] * self.Width + self.Width * 8 / 10)
+            self.board.tag_raise(self.me)
+            for (i, j, c, w, v) in self.specials:
+                self.board.create_rectangle(i * self.Width,
+                                            j * self.Width,
+                                            (i + 1) * self.Width,
+                                            (j + 1) * self.Width,
+                                            fill=c,
+                                            width=1)
+            self.board.tag_raise(self.me)
+
         for (i, j, c, w, v) in self.specials:
-            if new_x == i and new_y == j:
+            if self.player[0] == i and self.player[1] == j:
                 self.score -= self.walk_reward
                 self.score += w
-                self.player = (new_x, new_y)
-                if self.do_render:
-                    self.board.coords(self.me,
-                                      self.player[0] * self.Width + self.Width * 2 / 10,
-                                      self.player[1] * self.Width + self.Width * 2 / 10,
-                                      self.player[0] * self.Width + self.Width * 8 / 10,
-                                      self.player[1] * self.Width + self.Width * 8 / 10)
-                    self.board.tag_raise(self.me)
-                # if self.score > 0:
-                #     print("Success! score: ", self.score)
-                # else:
-                #     print("Fail! score: ", self.score)
-                # self.restart = True
-                return
 
     def call_up(self, event):
         self.try_move(0, -1)
@@ -314,7 +309,7 @@ class World(object):
 
     def restart_game(self):
         self.player = self.origin
-        self.score = 0
+        self.specials = self.original_specials.copy()
         self.restart = False
         if self.do_render:
             self.render_reset_grid()
@@ -328,6 +323,7 @@ class World(object):
                 self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
                 tag="me")
             self.board.tag_raise(self.me)
+            time.sleep(0.5)
 
     def has_restarted(self):
         return self.restart

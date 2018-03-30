@@ -3,6 +3,7 @@ import logger
 import threading
 import enum
 import queue
+import global_constants
 
 
 class InputHandler(object):
@@ -39,7 +40,8 @@ class KeyInputHandler(InputHandler):
             elif input == 'reset':
                 next_key = self.keys.RESET
             else:
-                logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)
+                if global_constants.print_debug:
+                    logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)
             if next_key is not None:
                 self.key_q.put(next_key, block=True)
                 # logger.log("Pushing:" + str(next_key), logger.Level.DEBUG, self.log)

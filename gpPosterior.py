@@ -2,6 +2,7 @@ import numpy as np
 import logger
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import WhiteKernel, ExpSineSquared
+import global_constants
 
 
 class GPPosterior:
@@ -71,7 +72,7 @@ class GPPosterior:
             if self.log:
                 logger.log(error_message, logger=self.log)
             else:
-                print(error_message)
+                if global_constants.print_debug: print(error_message)
 
             # toss into next nearest neighbor, frobenius manhattan distance
             min_coord_diff = min(last_class_vals, key=lambda x: abs(x[1] - obs))
@@ -81,7 +82,7 @@ class GPPosterior:
             if self.log:
                 logger.log(info_message, logger=self.log)
             else:
-                print(info_message)
+                if global_constants.print_debug: print(info_message)
 
         # initialize classes based on time with greatest collisions
         for t in sorted(hist_dict.keys(), key=int):
@@ -93,8 +94,13 @@ class GPPosterior:
                 break
 
         for t in sorted(hist_dict.keys(), key=int):
-            for obs in hist_dict[t]:
-                classify_obs(obs, t)
+            unique_obs = set(hist_dict[t])
+            if len(unique_obs) > 1:
+                # the set below doesnt duplicate data
+                for i, obs in enumerate(sorted(set(hist_dict[t]))):
+                    classes[i].append((t, obs))
+            else:
+                classify_obs(list(unique_obs)[0], t)
 
         # validate classes
         for i, c in enumerate(classes):
@@ -104,7 +110,7 @@ class GPPosterior:
                     logger.log("Expected more classes than classified!", logger=self.log)
                     logger.log(str(history), logger=self.log)
                 else:
-                    print("Expected more classes than classified!", str(history))
+                    if global_constants.print_debug: print("Expected more classes than classified!", str(history))
 
         return classes
 

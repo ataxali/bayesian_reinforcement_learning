@@ -90,38 +90,49 @@ def gp_posterior_tester(log):
     root_state = origin_state
     time = 0
     action_set = ["up", "down", "left", "right"]
-    simulator = WorldSimulator(use_cache=True)
+    orig_specials = world.static_specials.copy()
+    simulator = WorldSimulator(specials=orig_specials, use_cache=False)
     history_manager = HistoryManager(action_set)
     kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
                             periodicity_bounds=(2, 100),
                             length_scale_bounds=(1, 50))
-    gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=logger.ConsoleLogger())
+    gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=None)
     for i in range(1000):
         next_move = np.random.choice(action_set)
         state, action, sim_r, sim_n_s = simulator.sim(root_state, next_move)
         history_manager.add((root_state, action, sim_r, sim_n_s, time))
-        logger.log(next_move, logger=log)
+        logger.log(next_move + " " + str(sim_n_s) + " " + str(sim_r) + " " + str(simulator.specials), logger=log)
         root_state = sim_n_s
         time += 1
         if abs(sim_r) > 1:
             print("Restarting game", sim_r, time)
             root_state = origin_state
             time = 0
+            simulator.specials = orig_specials.copy()
             logger.log("reset", logger=log)
         if i and i % 100 == 0:
             gp.update_posterior()
 
-    t = np.atleast_2d(np.linspace(0, 100, 100)).T
+    t = np.atleast_2d(np.linspace(0, 1000, 1000)).T
     x_preds, y_preds = gp.predict(t)
-    cmap = ['m', 'c', 'k', 'g']
+    cmap_x = ['m', 'c', 'k', 'g']
+    cmap_y = ['r', 'b', 'y', 'teal']
+    total_x_obs = 0
+    total_y_obs = 0
+    for obs in gp.x_obs:
+        total_x_obs += len(obs)
+    for obs in gp.y_obs:
+        total_y_obs += len(obs)
+    print(">>> There are " + str(len(x_preds[0])) + " X gaussian procs for " + str(total_x_obs) + " obs <<<")
+    print(">>> There are " + str(len(y_preds[0])) + " Y gaussian procs for " + str(total_y_obs) + " obs <<<")
     for i, preds in enumerate(x_preds[0]):
-        plt.plot(t, preds, 'r:', label='x_predictions')
+        plt.plot(t, preds, cmap_x[i]+":", label='x_predictions')
         plt.plot(list(map(lambda x: x[0], gp.x_obs[i])),
-                 list(map(lambda x: x[1], gp.x_obs[i])), cmap[i]+"*", markersize=10)
+                 list(map(lambda x: x[1], gp.x_obs[i])), cmap_x[i]+"*", markersize=10)
     for i, preds in enumerate(y_preds[0]):
-        plt.plot(t, preds, 'b-', label='y_predictions')
+        plt.plot(t, preds, cmap_y[i]+":", label='y_predictions')
         plt.plot(list(map(lambda y: y[0], gp.y_obs[i])),
-                 list(map(lambda y: y[1], gp.y_obs[i])), cmap[i]+"*", markersize=10)
+                 list(map(lambda y: y[1], gp.y_obs[i])), cmap_y[i]+"*", markersize=10)
 
 
     plt.show(block=True)
@@ -226,16 +237,17 @@ def sparse_tree_model_tester():
 #bootstrap_history_tester()
 #thompson_sampler_tester()
 
-# def launch_world():
-#     world.World(init_x=6, init_y=6, input_reader=key_handler)
-# log = logger.ConsoleLogger()
-# key_handler = inputReader.KeyInputHandler(log)
-# file_tailer = inputReader.FileTailer("./fake_history.txt", key_handler, log)
-# t = threading.Thread(target=launch_world)
-# t.daemon = True
-# t.start()
+def launch_world():
+     world.World(init_x=6, init_y=6, input_reader=key_handler)
+log = logger.ConsoleLogger()
+key_handler = inputReader.KeyInputHandler(log)
 fake_history_logger = logger.DataLogger("./fake_history.txt", replace=True)
+file_tailer = inputReader.FileTailer("./fake_history.txt", key_handler, log)
+t = threading.Thread(target=launch_world)
+t.daemon = True
+t.start()
 gp_posterior_tester(fake_history_logger)
+
 
 #sparse_tree_model_tester()
 #log = logger.ConsoleLogger()
