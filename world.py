@@ -1,15 +1,16 @@
 import tkinter as tk
 import time
 import threading
+import numpy as np
 from inputReader import KeyInputHandler
 
 # (x, y, type, reward, velocity)
 static_specials = [(7, 3, "red", -10, "up"), (8, 5, "red", -10, "left"), (9, 1, "green", 10, "NA")]
-static_x, static_y = (10, 7)
-static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (5,3), (5,4), (5,5), (5,0)]
+static_x_dim, static_y_dim = (10, 7)
+static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3, 4), (5, 3), (5, 4), (5, 5), (5, 0)]
 
 #static_specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
-#static_x, static_y = (5, 5)
+#static_x_dim, static_y_dim = (5, 5)
 #static_walls = [(1, 1), (1, 2), (2, 1), (2, 2)]
 
 
@@ -24,12 +25,12 @@ class World(object):
         self.cell_score_min = -0.2
         self.cell_score_max = 0.2
         self.Width = 50
-        self.x, self.y = static_x, static_y
+        self.x, self.y = static_x_dim, static_y_dim
         self.actions = ["up", "down", "left", "right"]
 
         if self.do_render: self.board = tk.Canvas(self.master, width=self.x*self.Width,
                                height=self.y*self.Width)
-        self.score = 1
+        self.score = 0
         self.restart = False
         self.walk_reward = -0.1
 
@@ -84,6 +85,8 @@ class World(object):
                 self.call_left(None)
             elif next_key == KeyInputHandler.keys.RIGHT:
                 self.call_right(None)
+            elif next_key == KeyInputHandler.keys.RESET:
+                self.restart_game()
             else:
                 print("Unknown key input:", str(next_key))
             time.sleep(1)
@@ -104,7 +107,6 @@ class World(object):
                 print("Unknown move", action)
             move_pool.pop(0)
             time.sleep(1)
-
 
     def create_triangle(self, i, j, action):
         if action == self.actions[0]:
@@ -128,15 +130,25 @@ class World(object):
                                         (i+1)*self.Width, (j+0.5)*self.Width,
                                         fill="white", width=1)
 
+    def render_reset_grid(self):
+        for i in range(self.x):
+            for j in range(self.y):
+                self.board.create_rectangle(i*self.Width, j*self.Width,
+                                            (i+1)*self.Width, (j+1)*self.Width, fill="black", width=1)
+
+                randn = np.random.choice(range(len(self.actions)))
+                for action in self.actions[0:randn]:
+                    self.create_triangle(i, j, action)
+
     def render_grid(self):
         for i in range(self.x):
             for j in range(self.y):
                 self.board.create_rectangle(i*self.Width, j*self.Width,
                                             (i+1)*self.Width, (j+1)*self.Width, fill="white", width=1)
-                temp = {}
-                for action in self.actions:
-                    temp[action] = self.create_triangle(i, j, action)
-                    self.cell_scores[(i,j)] = temp
+                #temp = {}
+                #for action in self.actions:
+                #    temp[action] = self.create_triangle(i, j, action)
+                #    self.cell_scores[(i,j)] = temp
         for (i, j, c, w, v) in self.specials:
             self.board.create_rectangle(i*self.Width, j*self.Width,
                                         (i+1)*self.Width, (j+1)*self.Width, fill=c, width=1)
@@ -197,6 +209,18 @@ class World(object):
                     i -= 2
             updated_red_specials.append((i, j, c, w, v))
         return updated_red_specials + green_specials
+
+    def try_move_idx(self, move_idx):
+        if move_idx == 0:
+            self.try_move(0, -1)
+        elif move_idx == 1:
+            self.try_move(0, 1)
+        elif move_idx == 2:
+            self.try_move(-1, 0)
+        elif move_idx == 3:
+            self.try_move(1, 0)
+        else:
+            print("Unknown move index", move_idx)
 
     def try_move(self, dx, dy):
         #if self.restart:
@@ -262,6 +286,13 @@ class World(object):
                 self.score -= self.walk_reward
                 self.score += w
                 self.player = (new_x, new_y)
+                if self.do_render:
+                    self.board.coords(self.me,
+                                      self.player[0] * self.Width + self.Width * 2 / 10,
+                                      self.player[1] * self.Width + self.Width * 2 / 10,
+                                      self.player[0] * self.Width + self.Width * 8 / 10,
+                                      self.player[1] * self.Width + self.Width * 8 / 10)
+                    self.board.tag_raise(self.me)
                 # if self.score > 0:
                 #     print("Success! score: ", self.score)
                 # else:
@@ -283,10 +314,20 @@ class World(object):
 
     def restart_game(self):
         self.player = self.origin
-        self.score = 1
+        self.score = 0
         self.restart = False
-        self.board.coords(self.me, self.player[0]*self.Width+self.Width*2/10, self.player[1]*self.Width+self.Width*2/10,
-                          self.player[0]*self.Width+self.Width*8/10, self.player[1]*self.Width+self.Width*8/10)
+        if self.do_render:
+            self.render_reset_grid()
+            time.sleep(0.5)
+            self.board.delete('all')
+            self.render_grid()
+            self.me = self.board.create_rectangle(
+                self.player[0] * self.Width + self.Width * 2 / 10,
+                self.player[1] * self.Width + self.Width * 2 / 10,
+                self.player[0] * self.Width + self.Width * 8 / 10,
+                self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
+                tag="me")
+            self.board.tag_raise(self.me)
 
     def has_restarted(self):
         return self.restart

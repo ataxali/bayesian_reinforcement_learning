@@ -25,13 +25,13 @@ class WorldSimulator(MDPSimulator):
         # sim_world has initialized agent position
         r = -sim_world.score
         if sim_action == sim_world.actions[0]:
-            sim_world.try_move(0, -1)
+            sim_world.try_move_idx(0)
         elif sim_action == sim_world.actions[1]:
-            sim_world.try_move(0, 1)
+            sim_world.try_move_idx(1)
         elif sim_action == sim_world.actions[2]:
-            sim_world.try_move(-1, 0)
+            sim_world.try_move_idx(2)
         elif sim_action == sim_world.actions[3]:
-            sim_world.try_move(1, 0)
+            sim_world.try_move_idx(3)
         else:
             return
         s2 = sim_world.player

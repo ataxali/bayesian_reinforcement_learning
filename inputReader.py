@@ -14,7 +14,7 @@ class InputHandler(object):
 class KeyInputHandler(InputHandler):
     # current only supports inputs for maze game
     # add to enum if other keys need to be handled
-    keys = enum.Enum('keys', 'UP DOWN LEFT RIGHT')
+    keys = enum.Enum('keys', 'UP DOWN LEFT RIGHT RESET')
 
     def __init__(self, log):
         self.log = log
@@ -36,6 +36,8 @@ class KeyInputHandler(InputHandler):
                 next_key = self.keys.LEFT
             elif input == 'right':
                 next_key = self.keys.RIGHT
+            elif input == 'reset':
+                next_key = self.keys.RESET
             else:
                 logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)
             if next_key is not None:

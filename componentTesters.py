@@ -4,10 +4,14 @@ import time
 import random
 import inputReader
 import logger
+import numpy as np
 from mdpSimulator import WorldSimulator
 from bayesSparse import SparseTreeEvaluator
 from historyManager import HistoryManager, BootstrapHistoryManager
 from thompsonSampling import ThompsonSampler
+from gpPosterior import GPPosterior
+from sklearn.gaussian_process.kernels import ExpSineSquared
+from matplotlib import pyplot as plt, colors
 
 
 terminal_state_win = [world.static_specials[2][0], world.static_specials[2][1]]
@@ -66,20 +70,61 @@ def thompson_sampler_tester():
 
 def bootstrap_history_tester():
     action_set = ["up", "down", "left", "right"]
-    branching_factor = 2
     history = BootstrapHistoryManager(action_set, 0.5)
 
     w = WorldSimulator()
     move_1 = w.sim([0, 4], "up")
-    history.add(move_1)
+    history.add(move_1 + (1,))
 
     move_2 = w.sim([0, 3], "right")
-    history.add(move_2)
+    history.add(move_2 + (2, ))
 
     move_3 = w.sim([1, 3], "up")
-    history.add(move_3)
+    history.add(move_3 + (3, ))
 
-    print(history.get_action_count_reward_dict())
+    print(history.history)
+
+
+def gp_posterior_tester(log):
+    origin_state = [6, 6]
+    root_state = origin_state
+    time = 0
+    action_set = ["up", "down", "left", "right"]
+    simulator = WorldSimulator(use_cache=True)
+    history_manager = HistoryManager(action_set)
+    kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
+                            periodicity_bounds=(2, 100),
+                            length_scale_bounds=(1, 50))
+    gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=logger.ConsoleLogger())
+    for i in range(1000):
+        next_move = np.random.choice(action_set)
+        state, action, sim_r, sim_n_s = simulator.sim(root_state, next_move)
+        history_manager.add((root_state, action, sim_r, sim_n_s, time))
+        logger.log(next_move, logger=log)
+        root_state = sim_n_s
+        time += 1
+        if abs(sim_r) > 1:
+            print("Restarting game", sim_r, time)
+            root_state = origin_state
+            time = 0
+            logger.log("reset", logger=log)
+        if i and i % 100 == 0:
+            gp.update_posterior()
+
+    t = np.atleast_2d(np.linspace(0, 100, 100)).T
+    x_preds, y_preds = gp.predict(t)
+    cmap = ['m', 'c', 'k', 'g']
+    for i, preds in enumerate(x_preds[0]):
+        plt.plot(t, preds, 'r:', label='x_predictions')
+        plt.plot(list(map(lambda x: x[0], gp.x_obs[i])),
+                 list(map(lambda x: x[1], gp.x_obs[i])), cmap[i]+"*", markersize=10)
+    for i, preds in enumerate(y_preds[0]):
+        plt.plot(t, preds, 'b-', label='y_predictions')
+        plt.plot(list(map(lambda y: y[0], gp.y_obs[i])),
+                 list(map(lambda y: y[1], gp.y_obs[i])), cmap[i]+"*", markersize=10)
+
+
+    plt.show(block=True)
 
 
 def sparse_tree_model_tester():
@@ -181,8 +226,19 @@ def sparse_tree_model_tester():
 #bootstrap_history_tester()
 #thompson_sampler_tester()
 
-sparse_tree_model_tester()
-log = logger.ConsoleLogger()
-key_handler = inputReader.KeyInputHandler(log)
-file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
-world.World(init_x=0, init_y=6, input_reader=key_handler)
+# def launch_world():
+#     world.World(init_x=6, init_y=6, input_reader=key_handler)
+# log = logger.ConsoleLogger()
+# key_handler = inputReader.KeyInputHandler(log)
+# file_tailer = inputReader.FileTailer("./fake_history.txt", key_handler, log)
+# t = threading.Thread(target=launch_world)
+# t.daemon = True
+# t.start()
+fake_history_logger = logger.DataLogger("./fake_history.txt", replace=True)
+gp_posterior_tester(fake_history_logger)
+
+#sparse_tree_model_tester()
+#log = logger.ConsoleLogger()
+#key_handler = inputReader.KeyInputHandler(log)
+#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
+#world.World(init_x=0, init_y=6, input_reader=key_handler)
