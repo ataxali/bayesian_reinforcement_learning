@@ -1,9 +1,10 @@
 import tkinter as tk
 import time
 import threading
+from inputReader import KeyInputHandler
 
 # (x, y, type, reward, velocity)
-static_specials = [(7, 3, "red", -1, "up"), (8, 5, "red", -1, "left"), (9, 1, "green", 1, "NA")]
+static_specials = [(7, 3, "red", -10, "up"), (8, 5, "red", -10, "left"), (9, 1, "green", 10, "NA")]
 static_x, static_y = (10, 7)
 static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (5,3), (5,4), (5,5), (5,0)]
 
@@ -14,7 +15,8 @@ static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3,4), (5,3), (5,4), (5,5), (5,0
 
 class World(object):
 
-    def __init__(self, do_render=True, init_x=None, init_y=None, move_pool=None):
+    def __init__(self, do_render=True, init_x=None, init_y=None, move_pool=None,
+                 input_reader=None):
         self.do_render = do_render
         if self.do_render: self.master = tk.Tk()
 
@@ -57,12 +59,34 @@ class World(object):
                 self.player[0] * self.Width + self.Width * 8 / 10,
                 self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
                 tag="me")
+
         if move_pool:
             t = threading.Thread(target=self.run_pooled_moves, args=(move_pool,))
             t.daemon = True
             t.start()
 
+        if input_reader:
+            t = threading.Thread(target=self.run_input_moves, args=(input_reader,))
+            t.daemon = True
+            t.start()
+
         if do_render: self.master.mainloop()
+
+    def run_input_moves(self, input_reader):
+        time.sleep(1)
+        while True:
+            next_key = input_reader.get_next_key()
+            if next_key == KeyInputHandler.keys.UP:
+                self.call_up(None)
+            elif next_key == KeyInputHandler.keys.DOWN:
+                self.call_down(None)
+            elif next_key == KeyInputHandler.keys.LEFT:
+                self.call_left(None)
+            elif next_key == KeyInputHandler.keys.RIGHT:
+                self.call_right(None)
+            else:
+                print("Unknown key input:", str(next_key))
+            time.sleep(1)
 
     def run_pooled_moves(self, move_pool):
         time.sleep(1)
@@ -133,6 +157,7 @@ class World(object):
         self.board.itemconfigure(triangle, fill=color)
 
     def update_specials(self):
+        return static_specials
         red_specials = []
         green_specials = []
         updated_red_specials = []
@@ -272,5 +297,3 @@ class World(object):
     def quit(self):
         self.master.destroy()
 
-
-World()

@@ -2,13 +2,17 @@ import world
 import threading
 import time
 import random
+import inputReader
+import logger
 from mdpSimulator import WorldSimulator
 from bayesSparse import SparseTreeEvaluator
 from historyManager import HistoryManager, BootstrapHistoryManager
 from thompsonSampling import ThompsonSampler
 
-terminal_state_win = [world.static_specials[1][0], world.static_specials[1][1]]
-terminal_state_loss = [world.static_specials[0][0], world.static_specials[0][1]]
+
+terminal_state_win = [world.static_specials[2][0], world.static_specials[2][1]]
+terminal_state_loss_0 = [world.static_specials[0][0], world.static_specials[0][1]]
+terminal_state_loss_1 = [world.static_specials[1][0], world.static_specials[1][1]]
 
 
 def test_world_simulator():
@@ -89,18 +93,18 @@ def sparse_tree_model_tester():
     #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
     thompson_sampler = None
     discount_factor = 0.5
-    use_state_posterior = True
+    use_state_posterior = False
     ############################
 
     t0 = time.time()
     original_root = root_state
     simulator = WorldSimulator(use_cache=True)
-    #simulator = SnakeSimulator()
     prev_root = None
     total_move_count = 0
     episode_move_count = 0
     running_score = 0
     move_pool = []
+    key_logger = logger.DataLogger("./input.txt", replace=True)
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
         ste = SparseTreeEvaluator(sim, root_s, actions, horizon,
@@ -152,21 +156,33 @@ def sparse_tree_model_tester():
         print("Score:", running_score)
 
         move_pool.append(optimal_action)
+        logger.log(optimal_action, logger=key_logger)
 
         if root_state == terminal_state_win:
             print("Agent Won in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
             break
-        if root_state == terminal_state_loss:
+        if root_state == terminal_state_loss_0:
             print("Agent Lost in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
             break
-    world.World(init_x=original_root[0], init_y=original_root[1], move_pool=move_pool)
+        if root_state == terminal_state_loss_1:
+            print("Agent Lost in ", total_move_count, " moves!")
+            print("Time Taken: ", time.time()-t0)
+            break
 
-sparse_tree_model_tester()
+    # world.World(init_x=original_root[0], init_y=original_root[1], move_pool=move_pool)
+
+
 
 #sim = SnakeSimulator()
 #print(sim.get_valid_actions([100, 100], ["up", "down", "left", "right"]))
 
 #bootstrap_history_tester()
 #thompson_sampler_tester()
+
+sparse_tree_model_tester()
+log = logger.ConsoleLogger()
+key_handler = inputReader.KeyInputHandler(log)
+file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
+world.World(init_x=0, init_y=6, input_reader=key_handler)

@@ -1,6 +1,7 @@
 import logging
-from enum import Enum
 import threading
+import os
+from enum import Enum
 
 
 # global threading lock for all logging operations
@@ -72,7 +73,8 @@ def append_active_logger(logger):
 
 class FileLogger:
 
-    def __init__(self, filename=".log", level=Level.DEBUG, name='', format=None):
+    def __init__(self, filename=".log", level=Level.DEBUG, name='', format=None,
+                 header=True):
         logger = logging.getLogger("FileLogger" + name)
         handler = logging.FileHandler(name + filename)
         if format is None:
@@ -86,8 +88,9 @@ class FileLogger:
         self.name = name
         self.filename = filename
         append_active_logger(self)
-        logger.info('==============================')
-        logger.info('File-Logger Started...')
+        if header:
+            logger.info('==============================')
+            logger.info('File-Logger Started...')
 
     def get_logger(self):
         return self.logger
@@ -121,5 +124,9 @@ class ConsoleLogger:
 
 
 class DataLogger(FileLogger):
-    def __init__(self, filename="data.log", level=Level.DEBUG, name=''):
-        super(DataLogger, self).__init__(filename, level, name, "%(message)s")
+    def __init__(self, filename="data.log", level=Level.DEBUG, name='', replace=False):
+        if replace:
+            # replace data file if it already exists
+            if os.path.isfile(filename):
+                os.remove(filename)
+        super(DataLogger, self).__init__(filename, level, name, "%(message)s", header=False)

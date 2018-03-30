@@ -40,7 +40,7 @@ class KeyInputHandler(InputHandler):
                 logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)
             if next_key is not None:
                 self.key_q.put(next_key, block=True)
-                logger.log("Pushing:" + str(next_key), logger.Level.DEBUG, self.log)
+                # logger.log("Pushing:" + str(next_key), logger.Level.DEBUG, self.log)
 
     def get_next_key(self):
         # this is a blocking call, will wait until an item is on queue
