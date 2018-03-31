@@ -39,6 +39,12 @@ class KeyInputHandler(InputHandler):
                 next_key = self.keys.RIGHT
             elif input == 'reset':
                 next_key = self.keys.RESET
+            elif input[:4] == 'addr':
+                next_key = input
+            elif input[:4] == 'addc':
+                next_key = input
+            elif input[:3] == 'clr':
+                next_key = input
             else:
                 if global_constants.print_debug:
                     logger.log("Unrecognized input:" + line.strip(), logger.Level.ERROR, self.log)

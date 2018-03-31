@@ -9,12 +9,12 @@ class GPPosterior:
 
     def __init__(self, history_manager, kernel=None, penalty_threshold=-1, log=None):
         self.history_manager = history_manager
-        self.fitted_models_x = None
-        self.fitted_models_y = None
+        self.fitted_models_x = []
+        self.fitted_models_y = []
         self.penalty_threshold = penalty_threshold
         self.log = log
-        self.x_obs = None
-        self.y_obs = None
+        self.x_obs = []
+        self.y_obs = []
         if not kernel:
             self.kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
                                     periodicity_bounds=(2, 10),

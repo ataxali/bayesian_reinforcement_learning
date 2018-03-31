@@ -17,7 +17,8 @@ static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3, 4), (5, 3), (5, 4), (5, 5), 
 class World(object):
 
     def __init__(self, do_render=True, init_x=None, init_y=None, move_pool=None,
-                 input_reader=None, specials=static_specials, do_restart=False):
+                 input_reader=None, specials=static_specials, walls=static_walls,
+                 do_restart=False, do_belief=False):
         self.do_render = do_render
         if self.do_render: self.master = tk.Tk()
 
@@ -28,16 +29,20 @@ class World(object):
         self.x, self.y = static_x_dim, static_y_dim
         self.actions = ["up", "down", "left", "right"]
         self.do_restart = do_restart
+        self.do_belief = do_belief
 
-        if self.do_render: self.board = tk.Canvas(self.master, width=self.x*self.Width,
+        if self.do_render:
+            self.board = tk.Canvas(self.master, width=self.x*self.Width,
                                height=self.y*self.Width)
+            self.board.pack(fill=tk.BOTH, expand=tk.YES)
         self.score = 0
         self.restart = False
         self.walk_reward = -0.1
 
-        self.walls = static_walls
+        self.walls = walls
         self.original_specials = specials.copy()
         self.specials = specials
+        self.belief_states = list()
         self.cell_scores = {}
 
         if do_render: self.render_grid()
@@ -80,18 +85,57 @@ class World(object):
         while True:
             next_key = input_reader.get_next_key()
             if next_key == KeyInputHandler.keys.UP:
+                time.sleep(0.5)
                 self.call_up(None)
             elif next_key == KeyInputHandler.keys.DOWN:
+                time.sleep(0.5)
                 self.call_down(None)
             elif next_key == KeyInputHandler.keys.LEFT:
+                time.sleep(0.5)
                 self.call_left(None)
             elif next_key == KeyInputHandler.keys.RIGHT:
+                time.sleep(0.5)
                 self.call_right(None)
             elif next_key == KeyInputHandler.keys.RESET:
                 self.restart_game()
+            elif next_key[:4] == 'addr':
+                self.add_belief_node(next_key[4:], "R")
+            elif next_key[:4] == 'addc':
+                self.add_belief_node(next_key[4:], "C")
+            elif next_key[:3] == 'clr':
+                self.clear_belief_nodes()
             else:
                 print("Unknown key input:", str(next_key))
-            time.sleep(0.5)
+
+    def clear_belief_nodes(self):
+        if not self.do_belief: return
+        n = len(self.belief_states)
+        for i in range(n):
+            self.board.delete(self.belief_states[i])
+        self.belief_states = list()
+
+    def add_belief_node(self, coords, type):
+        if not self.do_belief: return
+        col = None
+        if type == "R":
+            col = "red"
+        else:
+            col = "light salmon"
+        x_y_vals = list(map(lambda x: int(x), coords.split(',')))
+        if not len(x_y_vals) == 2:
+            raise Exception("Cannot add belief coord: " + str(coords))
+        for wall in self.walls:
+            if x_y_vals[0] == wall[0] and x_y_vals[1] == wall[1]:
+                return
+        for special in self.specials:
+            if x_y_vals[0] == special[0] and x_y_vals[1] == special[1]:
+                return
+        new_rect = self.board.create_rectangle(x_y_vals[0] * self.Width, x_y_vals[1] * self.Width,
+                                               (x_y_vals[0] + 1) * self.Width,
+                                               (x_y_vals[1] + 1) * self.Width, fill=col,
+                                               width=1)
+        self.board.tag_raise(self.me)
+        self.belief_states.append(new_rect)
 
     def run_pooled_moves(self, move_pool):
         time.sleep(1)
