@@ -388,18 +388,19 @@ def sparse_tree_model_tester():
 #    world.World(init_x=0, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
 #         do_belief=True, walls=gp.static_states)
 
-def launch_real_world():
-    world.World(init_x=0, init_y=6, input_reader=key_handler)
+#def launch_real_world():
+#    world.World(init_x=0, init_y=6, input_reader=key_handler)
 
-log = logger.ConsoleLogger()
-key_handler = inputReader.KeyInputHandler(log)
-file_tailer = inputReader.FileTailer("./input_2.txt", key_handler, log)
-t = threading.Thread(target=launch_real_world)
-t.daemon = True
-t.start()
+#log = logger.ConsoleLogger()
+#key_handler = inputReader.KeyInputHandler(log)
+#file_tailer = inputReader.FileTailer("./input_2.txt", key_handler, log)
+#t = threading.Thread(target=launch_real_world)
+#t.daemon = True
+#t.start()
 
 
 #plot_gp("gp_2.out")
 
 
-# sparse_tree_model_tester()
+sparse_tree_model_tester()
+
