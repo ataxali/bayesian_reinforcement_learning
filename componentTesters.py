@@ -13,6 +13,7 @@ from gpPosterior import GPPosterior
 from sklearn.gaussian_process.kernels import ExpSineSquared
 from matplotlib import pyplot as plt, colors
 import pickle
+import sys
 
 
 terminal_state_win = [world.static_specials[2][0], world.static_specials[2][1]]
@@ -367,7 +368,10 @@ def sparse_tree_model_tester():
         if root_state == terminal_state_win:
             print("Agent Won in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
+            sys.stdout.flush()
             break
+
+        sys.stdout.flush()
 
 #############
 # gp tester #
