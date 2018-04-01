@@ -53,7 +53,7 @@ class WorldSimulator(MDPSimulator):
         if self.use_cache:
             WorldSimulator.WORLD_SIM_CACHE[(tuple(state), action, tuple(self.specials))] = (state, action, sim_r, sim_n_s)
         # print("Sim Result: ", state, action, sim_r, sim_n_s)
-        return state, action, sim_r, sim_n_s
+        return state, action, sim_r, sim_n_s, sim_world.specials
 
     def get_x_y(self, state):
         return state[0], state[1]

@@ -8,7 +8,7 @@ from inputReader import KeyInputHandler
 static_specials = [(7, 3, "red", -10, "up"), (8, 5, "red", -10, "left"), (9, 1, "green", 10, "NA")]
 static_x_dim, static_y_dim = (10, 7)
 static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3, 4), (5, 3), (5, 4), (5, 5), (5, 0)]
-static_time_between_moves = 0.1
+static_time_between_moves = 0.5
 
 #static_specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
 #static_x_dim, static_y_dim = (5, 5)

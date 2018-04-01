@@ -228,6 +228,8 @@ def sparse_tree_model_tester():
     t0 = time.time()
     prev_root = None
     simulator = WorldSimulator(use_cache=False)
+    true_specials = world.static_specials.copy()
+    true_walls = world.static_walls.copy()
     total_move_count = 0
     game_move_count = 0
     episode_move_count = 0
@@ -282,9 +284,11 @@ def sparse_tree_model_tester():
         optimal_action, optimal_action_index, possible_actions, ste = \
             eval_sparse_tree(simulator, root_state, action_set, horizon, thompson_sampler)
         # real world
-        orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action,
-                                                                  specials=world.static_specials,
-                                                                  walls=world.static_walls)
+        orig_state, action, new_reward, new_state, new_specials = simulator.sim(root_state, optimal_action,
+                                                                  specials=true_specials,
+                                                                  walls=true_walls)
+        # record change in true specials after move
+        true_specials = new_specials
 
         #while list(new_state) == prev_root:
         #    # loop breaker
@@ -365,48 +369,33 @@ def sparse_tree_model_tester():
             print("Time Taken: ", time.time()-t0)
             break
 
-        #if root_state == terminal_state_loss_0:
-        #    print("Agent Lost in ", total_move_count, " moves!")
-        #    print("Time Taken: ", time.time()-t0)
-        #    break
-        #if root_state == terminal_state_loss_1:
-        #    print("Agent Lost in ", total_move_count, " moves!")
-        #    print("Time Taken: ", time.time()-t0)
-        #    break
-
-    # world.World(init_x=original_root[0], init_y=original_root[1], move_pool=move_pool)
-
-
-
-#sim = SnakeSimulator()
-#print(sim.get_valid_actions([100, 100], ["up", "down", "left", "right"]))
-
-#bootstrap_history_tester()
-#thompson_sampler_tester()
-
-def launch_belief_world():
-     world.World(init_x=6, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
-                 do_belief=True, walls=[])
-
-
-def launch_real_world():
-    world.World(init_x=6, init_y=6, input_reader=key_handler)
-
+#############
+# gp tester #
+#############
 #fake_history_logger = logger.DataLogger("./fake_history.txt", replace=True)
 #gp_posterior_tester(fake_history_logger)
 
+
+##################
+# move re-player #
+##################
+#def launch_belief_world():
+#    gp = pickle.load(open("gp.out", "rb"))
+#    world.World(init_x=0, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
+#         do_belief=True, walls=gp.static_states)
+
+#def launch_real_world():
+#    world.World(init_x=0, init_y=6, input_reader=key_handler)
+
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
-#t = threading.Thread(target=launch_belief_world)
+#file_tailer = inputReader.FileTailer("./fake_history.txt", key_handler, log)
+#t = threading.Thread(target=launch_real_world)
 #t.daemon = True
 #t.start()
 
+
 # plot_gp()
 
-sparse_tree_model_tester()
 
-#log = logger.ConsoleLogger()
-#key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
-#world.World(init_x=0, init_y=6, input_reader=key_handler, specials=world.static_specials.copy())
+sparse_tree_model_tester()

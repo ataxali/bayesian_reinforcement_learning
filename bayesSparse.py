@@ -114,7 +114,7 @@ class SparseTreeEvaluator(object):
             statics = self.state_posterior.get_static_states()
             if lookahead_tree.node.type == NodeType.Decision:
                 for action in self.__get_actions(lookahead_tree, specials, statics):
-                    orig_state, child_action, child_reward, child_state = \
+                    orig_state, child_action, child_reward, child_state, _ = \
                         self.simulator.sim(lookahead_tree.node.state, action,
                                            specials=specials, walls=statics)
                     if list(child_state) == list(orig_state):
@@ -184,7 +184,7 @@ class SparseTreeEvaluator(object):
             ## complete neighbor set
             neighbors = []
             for action in self.action_set:
-                n_orig_state, n_action, n_reward, n_new_state = \
+                n_orig_state, n_action, n_reward, n_new_state, _ = \
                     self.simulator.sim(root.node.state, action,
                                        specials=specials, walls=statics)
                 neighbors.append(n_new_state)
