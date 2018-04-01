@@ -355,6 +355,9 @@ def sparse_tree_model_tester():
 
         # check terminal conditions
         if abs(new_reward) > 1:
+            if new_reward > 0:
+                print("Agent Won in ", game_move_count, " moves!")
+                sys.stdout.flush()
             print("Restarting game", new_reward, game_move_count)
             root_state = original_root.copy()
             true_specials = world.static_specials.copy()
@@ -364,12 +367,6 @@ def sparse_tree_model_tester():
 
         with open('gp.out', 'wb') as output:
             pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
-
-        if root_state == terminal_state_win:
-            print("Agent Won in ", total_move_count, " moves!")
-            print("Time Taken: ", time.time()-t0)
-            sys.stdout.flush()
-            break
 
         sys.stdout.flush()
 
