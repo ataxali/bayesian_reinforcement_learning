@@ -3,11 +3,11 @@ import world
 
 class MDPSimulator(object):
     """Abstract class for MDP Simulator"""
-    def sim(self, state, action):
+    def sim(self, state, action, specials, walls):
         """ Must return <orig_state, action, reward, new_state> tuple """
         raise NotImplementedError("Unimplemented method!")
 
-    def get_valid_actions(self, root, actions):
+    def get_valid_actions(self, root, actions, specials, walls):
         raise NotImplementedError("Unimplemented method!")
 
 
@@ -15,9 +15,8 @@ class WorldSimulator(MDPSimulator):
     WORLD_SIM_CACHE = dict()
     WORLD_VALID_ACTIONS_CACHE = dict()
 
-    def __init__(self, specials, do_render=False, use_cache=False):
+    def __init__(self, do_render=False, use_cache=False):
         # perhaps init threadpool here
-        self.specials = specials
         self.do_render = do_render
         self.use_cache = use_cache
 
@@ -39,16 +38,16 @@ class WorldSimulator(MDPSimulator):
         r += sim_world.score
         return r, s2
 
-    def sim(self, state, action):
+    def sim(self, state, action, specials, walls):
         if self.use_cache:
             if (tuple(state), action, tuple(self.specials)) in WorldSimulator.WORLD_SIM_CACHE:
                 # print("Skipped simulation for cached result")
                 return WorldSimulator.WORLD_SIM_CACHE[(tuple(state), action, tuple(self.specials))]
 
         init_x, init_y = self.get_x_y(state)
-        sim_world = world.World(self.do_render, init_x, init_y, specials=self.specials)
+        sim_world = world.World(self.do_render, init_x=init_x, init_y=init_y,
+                                specials=specials, walls=walls)
         sim_r, sim_n_s = self.__run(sim_world, state, action)
-        self.specials = sim_world.specials.copy()
         if self.do_render: sim_world.destroy()
         # return values are: <orig_state, action, reward, new_state>
         if self.use_cache:
@@ -59,11 +58,12 @@ class WorldSimulator(MDPSimulator):
     def get_x_y(self, state):
         return state[0], state[1]
 
-    def get_valid_actions(self, root, actions):
+    def get_valid_actions(self, root, actions, specials, walls):
         valid_actions = []
         init_x, init_y = self.get_x_y(root)
         for action in actions:
-            sim_world = world.World(self.do_render, init_x, init_y)
+            sim_world = world.World(self.do_render, init_x=init_x, init_y=init_y,
+                                    specials=specials, walls=walls)
             sim_r, sim_n_s = self.__run(sim_world, root, action)
             if not list(sim_n_s) == list(root):
                 valid_actions.append(action)

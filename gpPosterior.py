@@ -15,12 +15,19 @@ class GPPosterior:
         self.log = log
         self.x_obs = []
         self.y_obs = []
+        self.static_states = []
         if not kernel:
             self.kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
                                     periodicity_bounds=(2, 10),
                                     length_scale_bounds=(1, 3))
         else:
             self.kernel = kernel
+
+    def update_static_states(self, state):
+        self.static_states.append(tuple(state))
+
+    def get_static_states(self):
+        return self.static_states.copy()
 
     def update_posterior(self, n_restarts=10, a=0.01):
         # each history obs is <orig_state, action, reward, new_state, time>

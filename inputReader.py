@@ -43,6 +43,8 @@ class KeyInputHandler(InputHandler):
                 next_key = input
             elif input[:4] == 'addc':
                 next_key = input
+            elif input[:4] == 'addw':
+                next_key = input
             elif input[:3] == 'clr':
                 next_key = input
             else:

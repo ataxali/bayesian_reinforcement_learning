@@ -8,6 +8,7 @@ from inputReader import KeyInputHandler
 static_specials = [(7, 3, "red", -10, "up"), (8, 5, "red", -10, "left"), (9, 1, "green", 10, "NA")]
 static_x_dim, static_y_dim = (10, 7)
 static_walls = [(1, 1), (1, 2), (2, 1), (2, 2), (3, 4), (5, 3), (5, 4), (5, 5), (5, 0)]
+static_time_between_moves = 0.1
 
 #static_specials = [(4, 1, "red", -1), (4, 0, "green", 1)]
 #static_x_dim, static_y_dim = (5, 5)
@@ -40,6 +41,7 @@ class World(object):
         self.walk_reward = -0.1
 
         self.walls = walls
+        self.belief_walls = []
         self.original_specials = specials.copy()
         self.specials = specials
         self.belief_states = list()
@@ -85,16 +87,16 @@ class World(object):
         while True:
             next_key = input_reader.get_next_key()
             if next_key == KeyInputHandler.keys.UP:
-                time.sleep(0.5)
+                time.sleep(static_time_between_moves)
                 self.call_up(None)
             elif next_key == KeyInputHandler.keys.DOWN:
-                time.sleep(0.5)
+                time.sleep(static_time_between_moves)
                 self.call_down(None)
             elif next_key == KeyInputHandler.keys.LEFT:
-                time.sleep(0.5)
+                time.sleep(static_time_between_moves)
                 self.call_left(None)
             elif next_key == KeyInputHandler.keys.RIGHT:
-                time.sleep(0.5)
+                time.sleep(static_time_between_moves)
                 self.call_right(None)
             elif next_key == KeyInputHandler.keys.RESET:
                 self.restart_game()
@@ -102,10 +104,33 @@ class World(object):
                 self.add_belief_node(next_key[4:], "R")
             elif next_key[:4] == 'addc':
                 self.add_belief_node(next_key[4:], "C")
+            elif next_key[:4] == 'addw':
+                self.add_belief_walls(next_key[4:])
+            elif next_key[:3] == 'clrw':
+                self.clear_belief_walls()
             elif next_key[:3] == 'clr':
                 self.clear_belief_nodes()
             else:
                 print("Unknown key input:", str(next_key))
+
+    def clear_belief_walls(self):
+        if not self.do_belief: return
+        n = len(self.belief_walls)
+        for i in range(n):
+            self.board.delete(self.belief_walls[i])
+        self.belief_walls = list()
+
+    def add_belief_walls(self, coords):
+        if not self.do_belief: return
+        x_y_vals = list(map(lambda x: int(x), coords.split(',')))
+        if not len(x_y_vals) == 2:
+            raise Exception("Cannot add belief wall: " + str(coords))
+        new_rect = self.board.create_rectangle(x_y_vals[0]*self.Width, x_y_vals[1]*self.Width,
+                                               (x_y_vals[0]+1)*self.Width, (x_y_vals[1]+1)*self.Width,
+                                               fill="black", width=1)
+        self.board.tag_raise(self.me)
+        self.walls.append((x_y_vals[0], x_y_vals[1]))
+        self.belief_walls.append(new_rect)
 
     def clear_belief_nodes(self):
         if not self.do_belief: return
@@ -130,7 +155,8 @@ class World(object):
         for special in self.specials:
             if x_y_vals[0] == special[0] and x_y_vals[1] == special[1]:
                 return
-        new_rect = self.board.create_rectangle(x_y_vals[0] * self.Width, x_y_vals[1] * self.Width,
+        new_rect = self.board.create_rectangle(x_y_vals[0] * self.Width,
+                                               x_y_vals[1] * self.Width,
                                                (x_y_vals[0] + 1) * self.Width,
                                                (x_y_vals[1] + 1) * self.Width, fill=col,
                                                width=1)
@@ -152,7 +178,7 @@ class World(object):
             else:
                 print("Unknown move", action)
             move_pool.pop(0)
-            time.sleep(0.5)
+            time.sleep(static_time_between_moves)
 
     def create_triangle(self, i, j, action):
         if action == self.actions[0]:
@@ -199,8 +225,9 @@ class World(object):
             self.board.create_rectangle(i*self.Width, j*self.Width,
                                         (i+1)*self.Width, (j+1)*self.Width, fill=c, width=1)
         for (i, j) in self.walls:
-            self.board.create_rectangle(i*self.Width, j*self.Width,
+            wall_shape = self.board.create_rectangle(i*self.Width, j*self.Width,
                                         (i+1)*self.Width, (j+1)*self.Width, fill="black", width=1)
+            self.belief_walls.append(wall_shape)
 
     def set_cell_score(self, state, action, val):
         triangle = self.cell_scores[state][action]
@@ -357,7 +384,7 @@ class World(object):
         self.restart = False
         if self.do_render:
             self.render_reset_grid()
-            time.sleep(0.5)
+            time.sleep(static_time_between_moves)
             self.board.delete('all')
             self.render_grid()
             self.me = self.board.create_rectangle(
@@ -367,7 +394,7 @@ class World(object):
                 self.player[1] * self.Width + self.Width * 8 / 10, fill="orange", width=1,
                 tag="me")
             self.board.tag_raise(self.me)
-            time.sleep(0.5)
+            time.sleep(static_time_between_moves)
 
     def has_restarted(self):
         return self.restart

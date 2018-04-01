@@ -35,7 +35,7 @@ def sparse_tree_tester():
     simulator = WorldSimulator(use_cache=True)
     root_state = [0, 4]
     action_set = ["up", "down", "left", "right"]
-    print(simulator.get_valid_actions(root_state, action_set))
+    print(simulator.get_valid_actions(root_state, action_set, specials=[], walls=[]))
 
     simulator = WorldSimulator(use_cache=True)
     action_set = ["up", "down", "left", "right"]
@@ -136,6 +136,7 @@ def gp_posterior_tester(log):
     #     plt.xlim(0, 100)
     # plt.show(block=True)
     # end of warmup
+
     def predict(time, type):
         x_preds, y_preds = gp.predict(time)
         for x_pred in x_preds[0]:
@@ -147,6 +148,20 @@ def gp_posterior_tester(log):
     for i in range(1000):
         next_move = np.random.choice(action_set)
         state, action, sim_r, sim_n_s = simulator.sim(root_state, next_move)
+        if list(sim_n_s) == list(state):
+            if state not in gp.static_states:
+                if next_move == "up":
+                    logger.log('addw' + str(sim_n_s[0]) + "," + str(sim_n_s[1] - 1), logger=log)
+                    gp.update_static_states([sim_n_s[0], sim_n_s[1] - 1])
+                elif next_move == "down":
+                    logger.log('addw' + str(sim_n_s[0]) + "," + str(sim_n_s[1] + 1),logger=log)
+                    gp.update_static_states([sim_n_s[0], sim_n_s[1] + 1])
+                elif next_move == "left":
+                    logger.log('addw' + str(sim_n_s[0] - 1) + "," + str(sim_n_s[1]),logger=log)
+                    gp.update_static_states([sim_n_s[0] - 1, sim_n_s[1]])
+                elif next_move == "right":
+                    logger.log('addw' + str(sim_n_s[0] + 1) + "," + str(sim_n_s[1]),logger=log)
+                    gp.update_static_states([sim_n_s[0] + 1, sim_n_s[1]])
         history_manager.add((root_state, action, sim_r, sim_n_s, time))
         logger.log('clr', logger=log)
         predict(time - 1, "c")
@@ -159,7 +174,7 @@ def gp_posterior_tester(log):
             print("Restarting game", sim_r, time)
             root_state = origin_state
             time = 0
-            simulator.specials = orig_specials.copy()
+            # simulator.specials = orig_specials.copy()
             logger.log("reset", logger=log)
             gp.update_posterior()
 
@@ -196,6 +211,10 @@ def plot_gp():
 def sparse_tree_model_tester():
     ###### Model Variables #####
     root_state = [0, 6]
+    goal_state = [9, 1]
+    goal_reward = 10
+    loss_penalty = -10
+    original_root = root_state.copy()
     horizon = 5
     episode_length = 0  # number of moves before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
@@ -204,30 +223,47 @@ def sparse_tree_model_tester():
     #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
     thompson_sampler = None
     discount_factor = 0.5
-    use_state_posterior = False
     ############################
 
     t0 = time.time()
-    original_root = root_state
-    simulator = WorldSimulator(use_cache=True, specials=world.static_specials.copy())
     prev_root = None
+    simulator = WorldSimulator(use_cache=False)
     total_move_count = 0
+    game_move_count = 0
     episode_move_count = 0
     running_score = 0
     move_pool = []
-    key_logger = logger.DataLogger("./input.txt", replace=True)
+    log = logger.DataLogger("./input.txt", replace=True)
+    kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
+                            periodicity_bounds=(2, 100),
+                            length_scale_bounds=(1, 50))
+    gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=None)
+
+    def get_specials():
+        x_preds, y_preds = gp.predict(game_move_count)
+        specials = []
+        for x in x_preds:
+            for y in y_preds:
+                specials.append((x, y, "red", loss_penalty, "NA"))
+        specials.append((goal_state[0], goal_state[1], "green", goal_reward, "NA"))
+        return specials
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
         ste = SparseTreeEvaluator(sim, root_s, actions, horizon,
                                   history_manager=history_manager,
                                   thompson_sampler=tsampler,
                                   discount_factor=discount_factor,
-                                  use_posterior=use_state_posterior)
-        ste.evaluate()
+                                  state_posterior=gp,
+                                  goal_state=goal_state,
+                                  goal_reward=goal_reward,
+                                  loss_penalty=loss_penalty)
+        ste.evaluate(game_move_count)
         print(ste)
         #optimal_action_index = ste.lookahead_tree.node.value[0][0]
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
-        possible_actions = list(sim.get_valid_actions(root_s, actions))
+        possible_actions = list(sim.get_valid_actions(root_s, actions,
+                                                      specials=get_specials(),
+                                                      walls=gp.static_states))
         print("Possible actions: ", possible_actions)
         optimal_action = possible_actions[optimal_action_index]
         print("Optimal action:", str(optimal_action), ":", optimal_action_index)
@@ -242,45 +278,101 @@ def sparse_tree_model_tester():
             episode_move_count = 0
 
         print("Evaluating tree at ", root_state)
+        # belief based
         optimal_action, optimal_action_index, possible_actions, ste = \
             eval_sparse_tree(simulator, root_state, action_set, horizon, thompson_sampler)
-        orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action)
+        # real world
+        orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action,
+                                                                  specials=world.static_specials,
+                                                                  walls=world.static_walls)
 
-        while list(new_state) == prev_root:
-            # loop breaker
-            print("Policy loop detected...")
-            if len(possible_actions) == 0:
-                raise Exception("Whoops, this is a really bad place")
-            possible_actions.pop(optimal_action_index)
-            optimal_action, optimal_action_index, possible_actions, ste = \
-                eval_sparse_tree(simulator, root_state, possible_actions, horizon)
-            orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action)
+        #while list(new_state) == prev_root:
+        #    # loop breaker
+        #    print("Policy loop detected...")
+        #    if len(possible_actions) == 0:
+        #        raise Exception("Whoops, this is a really bad place")
+        #    possible_actions.pop(optimal_action_index)
+        #    optimal_action, optimal_action_index, possible_actions, ste = \
+        #        eval_sparse_tree(simulator, root_state, possible_actions, horizon)
+        #    orig_state, action, new_reward, new_state = simulator.sim(root_state, optimal_action,
+        #                                                              specials=get_specials(),
+        #                                                              walls=gp.static_states)
 
-        prev_root = root_state
+        # prev_root = root_state.copy()
         root_state = list(new_state)
         episode_move_count += 1
         total_move_count += 1
+        game_move_count += 1
         print("Moving to ", root_state, "...")
 
-        history_manager.add((orig_state, action, new_reward, new_state, total_move_count))
+        history_manager.add((orig_state, action, new_reward, new_state, game_move_count))
         running_score += new_reward
         print("Score:", running_score)
 
-        move_pool.append(optimal_action)
-        logger.log(optimal_action, logger=key_logger)
+        # check for walls
+        if list(new_state) == list(orig_state):
+            if tuple(new_state) not in gp.static_states:
+                if action == "up":
+                    logger.log(
+                        'addw' + str(new_state[0]) + "," + str(new_state[1] - 1),
+                        logger=log)
+                    gp.update_static_states([new_state[0], new_state[1] - 1])
+                elif action == "down":
+                    logger.log(
+                        'addw' + str(new_state[0]) + "," + str(new_state[1] + 1),
+                        logger=log)
+                    gp.update_static_states([new_state[0], new_state[1] + 1])
+                elif action == "left":
+                    logger.log(
+                        'addw' + str(new_state[0] - 1) + "," + str(new_state[1]),
+                        logger=log)
+                    gp.update_static_states([new_state[0] - 1, new_state[1]])
+                elif action == "right":
+                    logger.log(
+                        'addw' + str(new_state[0] + 1) + "," + str(new_state[1]),
+                        logger=log)
+                    gp.update_static_states([new_state[0] + 1, new_state[1]])
+
+        # update belief game
+        def predict(time, type):
+            x_preds, y_preds = gp.predict(time)
+            for x_pred in x_preds[0]:
+                for y_pred in y_preds[0]:
+                    msg = "add" + type + str(int(round(x_pred[0]))) + "," + str(
+                        int(round(y_pred[0])))
+                    logger.log(msg, logger=log)
+
+        logger.log('clr', logger=log)
+        predict(game_move_count - 1, "c")
+        predict(game_move_count + 1, "c")
+        predict(game_move_count, "r")
+        logger.log(action, logger=log)
+
+        # check terminal conditions
+        if abs(new_reward) > 1:
+            print("Restarting game", new_reward, game_move_count)
+            root_state = original_root.copy()
+            # simulator.specials = orig_specials.copy()
+            game_move_count = 0
+            logger.log("reset", logger=log)
+            gp.update_posterior()
+
+        with open('gp.out', 'wb') as output:
+            pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
 
         if root_state == terminal_state_win:
             print("Agent Won in ", total_move_count, " moves!")
             print("Time Taken: ", time.time()-t0)
             break
-        if root_state == terminal_state_loss_0:
-            print("Agent Lost in ", total_move_count, " moves!")
-            print("Time Taken: ", time.time()-t0)
-            break
-        if root_state == terminal_state_loss_1:
-            print("Agent Lost in ", total_move_count, " moves!")
-            print("Time Taken: ", time.time()-t0)
-            break
+
+        #if root_state == terminal_state_loss_0:
+        #    print("Agent Lost in ", total_move_count, " moves!")
+        #    print("Time Taken: ", time.time()-t0)
+        #    break
+        #if root_state == terminal_state_loss_1:
+        #    print("Agent Lost in ", total_move_count, " moves!")
+        #    print("Time Taken: ", time.time()-t0)
+        #    break
 
     # world.World(init_x=original_root[0], init_y=original_root[1], move_pool=move_pool)
 
@@ -294,24 +386,26 @@ def sparse_tree_model_tester():
 
 def launch_belief_world():
      world.World(init_x=6, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
-                 do_belief=True)
+                 do_belief=True, walls=[])
 
 
 def launch_real_world():
     world.World(init_x=6, init_y=6, input_reader=key_handler)
 
+#fake_history_logger = logger.DataLogger("./fake_history.txt", replace=True)
+#gp_posterior_tester(fake_history_logger)
+
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#fake_history_logger = logger.DataLogger("./fake_history.txt", replace=True)
-#file_tailer = inputReader.FileTailer("./fake_history.txt", key_handler, log)
+#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
 #t = threading.Thread(target=launch_belief_world)
 #t.daemon = True
 #t.start()
-#gp_posterior_tester(fake_history_logger)
 
-plot_gp()
+# plot_gp()
 
-#sparse_tree_model_tester()
+sparse_tree_model_tester()
+
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
 #file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
