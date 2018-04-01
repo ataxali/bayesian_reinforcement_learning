@@ -183,8 +183,8 @@ def gp_posterior_tester(log):
         pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
 
 
-def plot_gp():
-    gp = pickle.load(open("gp.out", "rb"))
+def plot_gp(filename):
+    gp = pickle.load(open(filename, "rb"))
     t = np.atleast_2d(np.linspace(0, 1000, 1000)).T
     x_preds, y_preds = gp.predict(t)
     cmap_x = ['m', 'c', 'k', 'g']
@@ -357,7 +357,7 @@ def sparse_tree_model_tester():
         if abs(new_reward) > 1:
             print("Restarting game", new_reward, game_move_count)
             root_state = original_root.copy()
-            # simulator.specials = orig_specials.copy()
+            true_specials = world.static_specials.copy()
             game_move_count = 0
             logger.log("reset", logger=log)
             gp.update_posterior()
@@ -388,18 +388,18 @@ def sparse_tree_model_tester():
 #    world.World(init_x=0, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
 #         do_belief=True, walls=gp.static_states)
 
-#def launch_real_world():
-#    world.World(init_x=0, init_y=6, input_reader=key_handler)
+def launch_real_world():
+    world.World(init_x=0, init_y=6, input_reader=key_handler)
 
-#log = logger.ConsoleLogger()
-#key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./fake_history.txt", key_handler, log)
-#t = threading.Thread(target=launch_real_world)
-#t.daemon = True
-#t.start()
-
-
-# plot_gp()
+log = logger.ConsoleLogger()
+key_handler = inputReader.KeyInputHandler(log)
+file_tailer = inputReader.FileTailer("./input_2.txt", key_handler, log)
+t = threading.Thread(target=launch_real_world)
+t.daemon = True
+t.start()
 
 
-sparse_tree_model_tester()
+#plot_gp("gp_2.out")
+
+
+# sparse_tree_model_tester()
