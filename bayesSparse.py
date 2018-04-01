@@ -63,9 +63,16 @@ class SparseTree(object):
         return str(self.node) + " -> " + children_str
 
     def get_tree_size(self):
-        if len(self.children) == 0:
+        if not self.children and self.node.type == NodeType.Decision:
             return 1
+        if not self.children:
+            return 0
         return 1 + sum(map(lambda child: child.get_tree_size(), self.children))
+
+    def get_tree_depth(self):
+        if len(self.children) == 0:
+            return self.node.depth
+        return max(map(lambda child: child.get_tree_depth(), self.children))
 
 
 class SparseTreeEvaluator(object):
@@ -105,11 +112,17 @@ class SparseTreeEvaluator(object):
             if (lookahead_tree.node.depth >= self.horizon) and (lookahead_tree.node.type == NodeType.Decision):
                 # leaves of sparse tree should be outcome nodes
                 return
-            x_preds, y_preds = self.state_posterior.predict(t)
+
+            def predict_specials(specials, time):
+                x_preds, y_preds = self.state_posterior.predict(time)
+                for x in x_preds:
+                    for y in y_preds:
+                        specials.append((x, y, "red", self.loss_penalty, "NA"))
+
             specials = []
-            for x in x_preds:
-                for y in y_preds:
-                    specials.append((x, y, "red", self.loss_penalty, "NA"))
+            predict_specials(specials, t)
+            predict_specials(specials, t-1)
+            predict_specials(specials, t+1)
             specials.append((self.goal_state[0], self.goal_state[1], "green", self.goal_reward, "NA"))
             statics = self.state_posterior.get_static_states()
             if lookahead_tree.node.type == NodeType.Decision:
@@ -126,12 +139,11 @@ class SparseTreeEvaluator(object):
                     self.__grow_sparse_tree(child, t)
 
             if lookahead_tree.node.type == NodeType.Outcome:
-                for state in self.__get_states(lookahead_tree, specials, statics):
-                    child = SparseTree(SparseTree.Node(NodeType.Decision, lookahead_tree.node.depth+1,
-                                                       state, []), lookahead_tree)
-                    lookahead_tree.add_child(child)
-                    if print_debug: print("Added decision child depth", child)
-                    self.__grow_sparse_tree(child, t)
+                child = SparseTree(SparseTree.Node(NodeType.Decision,
+                                                   lookahead_tree.node.depth + 1,
+                                                   lookahead_tree.node.state, []), lookahead_tree)
+                lookahead_tree.add_child(child)
+                self.__grow_sparse_tree(child, t)
 
         def __eval_sparse_tree(self, lookahead_tree):
             for child in lookahead_tree.children:

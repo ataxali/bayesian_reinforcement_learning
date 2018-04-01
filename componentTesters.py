@@ -216,7 +216,7 @@ def sparse_tree_model_tester():
     goal_reward = 10
     loss_penalty = -10
     original_root = root_state.copy()
-    horizon = 5
+    horizon = 10
     episode_length = 0  # number of moves before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
@@ -381,22 +381,21 @@ def sparse_tree_model_tester():
 # move re-player #
 ##################
 #def launch_belief_world():
-#    gp = pickle.load(open("gp.out", "rb"))
 #    world.World(init_x=0, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
-#         do_belief=True, walls=gp.static_states)
+#         do_belief=True, walls=[])
 
 #def launch_real_world():
 #    world.World(init_x=0, init_y=6, input_reader=key_handler)
 
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input_2.txt", key_handler, log)
-#t = threading.Thread(target=launch_real_world)
+#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
+#t = threading.Thread(target=launch_belief_world)
 #t.daemon = True
 #t.start()
 
 
-#plot_gp("gp_2.out")
+#plot_gp("gp_3.out")
 
 
 sparse_tree_model_tester()
