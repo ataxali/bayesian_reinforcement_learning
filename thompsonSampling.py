@@ -1,5 +1,6 @@
 import numpy as np
 from global_constants import print_debug
+import sys
 
 
 class ThompsonSampler(object):
@@ -38,6 +39,7 @@ class ThompsonSampler(object):
             sample_hyper = 4
 
         print("TS Hyper:", n_sample_hyper)
+        sys.stdout.flush()
 
         sample_hyper = min(sample_hyper, len(action_set))
 

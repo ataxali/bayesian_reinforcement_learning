@@ -5,7 +5,7 @@ import numpy as np
 from inputReader import KeyInputHandler
 
 static_x_dim, static_y_dim = (10, 7)
-static_time_between_moves = 0.5
+static_time_between_moves = 0.1
 
 # (x, y, type, reward, velocity)
 # 4 cat case

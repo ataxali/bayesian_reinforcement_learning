@@ -173,24 +173,11 @@ class SparseTreeEvaluator(object):
 
             if lookahead_tree.node.type == NodeType.Decision:
                 if lookahead_tree.node.depth == 0:
-                    specials = []
-                    self.__predict_specials(specials, t)
-                    self.__predict_specials(specials, t - 1)
-                    self.__predict_specials(specials, t + 1)
                     # set sparse tree root value to
                     # (best_action_index, max_avg_reward_value_discounted)
                     max_value = max(lookahead_tree.node.value)
                     max_idxs = [i for i, j in enumerate(lookahead_tree.node.value) if j == max_value]
-                    special_states = map(lambda x: [x[0], x[1]], specials)
-                    max_idxs_filtered = []
-                    for idx in max_idxs:
-                        if list(lookahead_tree.children[idx].node.state) in list(special_states):
-                            print("Removing optimal action from root lookahead",
-                                  str(lookahead_tree.children[idx].node))
-                        else:
-                            max_idxs_filtered.append(idx)
-
-                    lookahead_tree.node.value = (max_idxs_filtered, max_value, [lookahead_tree.node.value])
+                    lookahead_tree.node.value = (max_idxs, max_value, [lookahead_tree.node.value])
                 else:
                     # maximize the averages and discount the max
                     if len(lookahead_tree.node.value):

@@ -261,7 +261,7 @@ def sparse_tree_model_tester():
                                   goal_state=goal_state,
                                   goal_reward=goal_reward,
                                   loss_penalty=loss_penalty)
-        ste.evaluate(game_move_count)
+        ste.evaluate(game_move_count+1)
         print(ste)
         #optimal_action_index = ste.lookahead_tree.node.value[0][0]
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
@@ -388,7 +388,7 @@ def sparse_tree_model_tester():
 # move re-player #
 ##################
 #def launch_belief_world():
-#    world.World(init_x=0, init_y=3, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
+#    world.World(init_x=0, init_y=3, input_reader=key_handler, specials=[(9, 6, "green", 10, "NA")],
 #         do_belief=True, walls=[])
 
 #def launch_real_world():
@@ -402,7 +402,7 @@ def sparse_tree_model_tester():
 #t.start()
 
 
-#plot_gp("gp_3.out")
+#plot_gp("gp_4ts.out")
 
 
 sparse_tree_model_tester()
