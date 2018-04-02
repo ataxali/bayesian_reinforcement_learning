@@ -211,7 +211,7 @@ def plot_gp(filename):
 
 def sparse_tree_model_tester():
     ###### Model Variables #####
-    root_state = [0, 6]
+    root_state = [4, 3]
     goal_state = [9, 1]
     goal_reward = 10
     loss_penalty = -10
@@ -221,8 +221,9 @@ def sparse_tree_model_tester():
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
     #history_manager = BootstrapHistoryManager(action_set, 0.5)
-    #thompson_sampler = ThompsonSampler(history_manager, use_rewards=True, use_constant_boundary=0.5)
-    thompson_sampler = None
+    thompson_sampler = ThompsonSampler(history_manager, use_constant_boundary=0.5,
+                                       move_weight=0.05, move_discount=0.5,
+                                       num_dirch_samples=100)
     discount_factor = 0.5
     ############################
 
@@ -235,7 +236,6 @@ def sparse_tree_model_tester():
     game_move_count = 0
     episode_move_count = 0
     running_score = 0
-    move_pool = []
     log = logger.DataLogger("./input.txt", replace=True)
     kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
                             periodicity_bounds=(2, 100),
@@ -264,9 +264,7 @@ def sparse_tree_model_tester():
         print(ste)
         #optimal_action_index = ste.lookahead_tree.node.value[0][0]
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
-        possible_actions = list(sim.get_valid_actions(root_s, actions,
-                                                      specials=get_specials(),
-                                                      walls=gp.static_states))
+        possible_actions = ste.lookahead_tree.actions
         print("Possible actions: ", possible_actions)
         optimal_action = possible_actions[optimal_action_index]
         print("Optimal action:", str(optimal_action), ":", optimal_action_index)
@@ -309,6 +307,7 @@ def sparse_tree_model_tester():
         total_move_count += 1
         game_move_count += 1
         print("Moving to ", root_state, "...")
+        print("Move count:", total_move_count)
 
         history_manager.add((orig_state, action, new_reward, new_state, game_move_count))
         running_score += new_reward

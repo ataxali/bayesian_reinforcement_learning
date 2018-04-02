@@ -44,9 +44,10 @@ class SparseTree(object):
         def __str__(self):
             return "[" + str(self.type) + ":" + str(self.depth) + ":" + str(self.value) + "]"
 
-    def __init__(self, node, parent):
+    def __init__(self, node, parent, actions=None):
         self.node = node
         self.parent = parent
+        self.actions = actions
         self.children = []
 
     def add_child(self, child):
@@ -126,7 +127,13 @@ class SparseTreeEvaluator(object):
             specials.append((self.goal_state[0], self.goal_state[1], "green", self.goal_reward, "NA"))
             statics = self.state_posterior.get_static_states()
             if lookahead_tree.node.type == NodeType.Decision:
-                for action in self.__get_actions(lookahead_tree, specials, statics):
+                if lookahead_tree.node.depth == 0 and self.thompson_sampler:
+                    move_pool = self.__get_actions(lookahead_tree, specials, statics, True)
+                    lookahead_tree.actions = move_pool
+                else:
+                    move_pool = self.__get_actions(lookahead_tree, specials, statics, False)
+                    lookahead_tree.actions = move_pool
+                for action in move_pool:
                     orig_state, child_action, child_reward, child_state, _ = \
                         self.simulator.sim(lookahead_tree.node.state, action,
                                            specials=specials, walls=statics)
@@ -182,15 +189,18 @@ class SparseTreeEvaluator(object):
                         else:
                             lookahead_tree.append_val_to_parent(present_reward)
 
-        def __get_actions(self, root, specials, statics):
-            if self.thompson_sampler:
+        def __get_actions(self, root, specials, statics, use_tsampler):
+            if use_tsampler:
                 valid_actions = self.simulator.get_valid_actions(root.node.state,
                                                                  self.action_set,
                                                                  specials=specials,
                                                                  walls=statics)
                 return self.thompson_sampler.get_action_set(valid_actions)
             else:
-                return self.action_set
+                return self.simulator.get_valid_actions(root.node.state,
+                                                                 self.action_set,
+                                                                 specials=specials,
+                                                                 walls=statics)
 
         def __get_states(self, root, specials, statics):
             ## complete neighbor set
