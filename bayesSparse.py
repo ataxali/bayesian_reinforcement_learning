@@ -99,7 +99,7 @@ class SparseTreeEvaluator(object):
             root_node = SparseTree.Node(NodeType.Decision, 0, self.root_state, [])
             lookahead_tree = SparseTree(root_node, None)
             self.__grow_sparse_tree(lookahead_tree, t)
-            self.__eval_sparse_tree(lookahead_tree)
+            self.__eval_sparse_tree(lookahead_tree, t)
             self.lookahead_tree = lookahead_tree
 
         def __str__(self):
@@ -109,24 +109,26 @@ class SparseTreeEvaluator(object):
             children_str += "}"
             return str(self.lookahead_tree.node) + " -> " + children_str
 
+        def __predict_specials(self, specials, time):
+            x_preds, y_preds = self.state_posterior.predict(time)
+            for x in x_preds:
+                for y in y_preds:
+                    specials.append((x, y, "red", self.loss_penalty, "NA"))
+
         def __grow_sparse_tree(self, lookahead_tree, t):
             if (lookahead_tree.node.depth >= self.horizon) and (lookahead_tree.node.type == NodeType.Decision):
                 # leaves of sparse tree should be outcome nodes
                 return
 
-            def predict_specials(specials, time):
-                x_preds, y_preds = self.state_posterior.predict(time)
-                for x in x_preds:
-                    for y in y_preds:
-                        specials.append((x, y, "red", self.loss_penalty, "NA"))
-
-            specials = []
-            predict_specials(specials, t)
-            predict_specials(specials, t-1)
-            predict_specials(specials, t+1)
-            specials.append((self.goal_state[0], self.goal_state[1], "green", self.goal_reward, "NA"))
-            statics = self.state_posterior.get_static_states()
             if lookahead_tree.node.type == NodeType.Decision:
+                specials = []
+                self.__predict_specials(specials, t)
+                self.__predict_specials(specials, t - 1)
+                self.__predict_specials(specials, t + 1)
+                specials.append((
+                                self.goal_state[0], self.goal_state[1], "green",
+                                self.goal_reward, "NA"))
+                statics = self.state_posterior.get_static_states()
                 if lookahead_tree.node.depth == 0 and self.thompson_sampler:
                     move_pool = self.__get_actions(lookahead_tree, specials, statics, True)
                     lookahead_tree.actions = move_pool
@@ -150,11 +152,11 @@ class SparseTreeEvaluator(object):
                                                    lookahead_tree.node.depth + 1,
                                                    lookahead_tree.node.state, []), lookahead_tree)
                 lookahead_tree.add_child(child)
-                self.__grow_sparse_tree(child, t)
+                self.__grow_sparse_tree(child, t+1)
 
-        def __eval_sparse_tree(self, lookahead_tree):
+        def __eval_sparse_tree(self, lookahead_tree, t):
             for child in lookahead_tree.children:
-                self.__eval_sparse_tree(child)
+                self.__eval_sparse_tree(child, t)
 
             if lookahead_tree.node.type == NodeType.Outcome:
                 state_reward = lookahead_tree.node.value.pop(0)
@@ -171,12 +173,24 @@ class SparseTreeEvaluator(object):
 
             if lookahead_tree.node.type == NodeType.Decision:
                 if lookahead_tree.node.depth == 0:
+                    specials = []
+                    self.__predict_specials(specials, t)
+                    self.__predict_specials(specials, t - 1)
+                    self.__predict_specials(specials, t + 1)
                     # set sparse tree root value to
                     # (best_action_index, max_avg_reward_value_discounted)
                     max_value = max(lookahead_tree.node.value)
-                    lookahead_tree.node.value = ([i for i, j in
-                                                 enumerate(lookahead_tree.node.value)
-                                                 if j == max_value], max_value, [lookahead_tree.node.value])
+                    max_idxs = [i for i, j in enumerate(lookahead_tree.node.value) if j == max_value]
+                    special_states = map(lambda x: [x[0], x[1]], specials)
+                    max_idxs_filtered = []
+                    for idx in max_idxs:
+                        if list(lookahead_tree.children[idx].node.state) in list(special_states):
+                            print("Removing optimal action from root lookahead",
+                                  str(lookahead_tree.children[idx].node))
+                        else:
+                            max_idxs_filtered.append(idx)
+
+                    lookahead_tree.node.value = (max_idxs_filtered, max_value, [lookahead_tree.node.value])
                 else:
                     # maximize the averages and discount the max
                     if len(lookahead_tree.node.value):

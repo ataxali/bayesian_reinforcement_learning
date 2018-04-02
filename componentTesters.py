@@ -211,8 +211,8 @@ def plot_gp(filename):
 
 def sparse_tree_model_tester():
     ###### Model Variables #####
-    root_state = [4, 3]
-    goal_state = [9, 1]
+    root_state = [0, 3]
+    goal_state = [9, 6]
     goal_reward = 10
     loss_penalty = -10
     original_root = root_state.copy()
@@ -221,15 +221,16 @@ def sparse_tree_model_tester():
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
     #history_manager = BootstrapHistoryManager(action_set, 0.5)
-    thompson_sampler = ThompsonSampler(history_manager, use_constant_boundary=0.5,
-                                       move_weight=0.05, move_discount=0.5,
-                                       num_dirch_samples=100)
+    #thompson_sampler = ThompsonSampler(history_manager, use_constant_boundary=0.5,
+    #                                   move_weight=0.05, move_discount=0.5,
+    #                                   num_dirch_samples=100)
+    thompson_sampler = None
     discount_factor = 0.5
     ############################
 
     t0 = time.time()
     prev_root = None
-    simulator = WorldSimulator(use_cache=False)
+    simulator = WorldSimulator()
     true_specials = world.static_specials.copy()
     true_walls = world.static_walls.copy()
     total_move_count = 0
@@ -367,6 +368,13 @@ def sparse_tree_model_tester():
         with open('gp.out', 'wb') as output:
             pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
 
+        if thompson_sampler:
+            with open('ts.out', 'wb') as output:
+                pickle.dump(thompson_sampler, output, pickle.HIGHEST_PROTOCOL)
+
+        with open('hm.out', 'wb') as output:
+            pickle.dump(history_manager, output, pickle.HIGHEST_PROTOCOL)
+
         sys.stdout.flush()
 
 #############
@@ -380,15 +388,15 @@ def sparse_tree_model_tester():
 # move re-player #
 ##################
 #def launch_belief_world():
-#    world.World(init_x=0, init_y=6, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
+#    world.World(init_x=0, init_y=3, input_reader=key_handler, specials=[(9, 1, "green", 10, "NA")],
 #         do_belief=True, walls=[])
 
 #def launch_real_world():
-#    world.World(init_x=0, init_y=6, input_reader=key_handler)
+#    world.World(init_x=0, init_y=3, input_reader=key_handler)
 
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
+#file_tailer = inputReader.FileTailer("./input_4ts.txt", key_handler, log)
 #t = threading.Thread(target=launch_belief_world)
 #t.daemon = True
 #t.start()
