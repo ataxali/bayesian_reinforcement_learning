@@ -242,6 +242,7 @@ def sparse_tree_model_tester():
                             periodicity_bounds=(2, 100),
                             length_scale_bounds=(1, 50))
     gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=None)
+    #gp = pickle.load(open("gp_4ts.out", "rb"))
 
     def get_specials():
         x_preds, y_preds = gp.predict(game_move_count)
@@ -261,7 +262,7 @@ def sparse_tree_model_tester():
                                   goal_state=goal_state,
                                   goal_reward=goal_reward,
                                   loss_penalty=loss_penalty)
-        ste.evaluate(game_move_count+1)
+        ste.evaluate(game_move_count)
         print(ste)
         #optimal_action_index = ste.lookahead_tree.node.value[0][0]
         optimal_action_index = random.choice(ste.lookahead_tree.node.value[0])
@@ -304,9 +305,6 @@ def sparse_tree_model_tester():
 
         # prev_root = root_state.copy()
         root_state = list(new_state)
-        episode_move_count += 1
-        total_move_count += 1
-        game_move_count += 1
         print("Moving to ", root_state, "...")
         print("Move count:", total_move_count)
 
@@ -343,15 +341,21 @@ def sparse_tree_model_tester():
             x_preds, y_preds = gp.predict(time)
             for x_pred in x_preds[0]:
                 for y_pred in y_preds[0]:
-                    msg = "add" + type + str(int(round(x_pred[0]))) + "," + str(
-                        int(round(y_pred[0])))
-                    logger.log(msg, logger=log)
+                    if [int(round(x_pred[0])), int(round(y_pred[0]))] in ste.ignored_specials:
+                        print("Ignoring special for belief world", int(round(x_pred[0])), int(round(y_pred[0])))
+                    else:
+                        msg = "add" + type + str(int(round(x_pred[0]))) + "," + str(int(round(y_pred[0])))
+                        logger.log(msg, logger=log)
 
         logger.log('clr', logger=log)
         predict(game_move_count - 1, "c")
         predict(game_move_count + 1, "c")
         predict(game_move_count, "r")
         logger.log(action, logger=log)
+
+        episode_move_count += 1
+        total_move_count += 1
+        game_move_count += 1
 
         # check terminal conditions
         if abs(new_reward) > 1:
@@ -396,13 +400,13 @@ def sparse_tree_model_tester():
 
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input_4ts.txt", key_handler, log)
+#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
 #t = threading.Thread(target=launch_belief_world)
 #t.daemon = True
 #t.start()
 
 
-#plot_gp("gp_4ts.out")
+#plot_gp("gp.out")
 
 
 sparse_tree_model_tester()

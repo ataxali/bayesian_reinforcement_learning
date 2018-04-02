@@ -94,12 +94,18 @@ class SparseTreeEvaluator(object):
             self.goal_state = goal_state
             self.loss_penalty = loss_penalty
             self.goal_reward = goal_reward
+            self.ignored_specials = []
 
         def evaluate(self, t):
             root_node = SparseTree.Node(NodeType.Decision, 0, self.root_state, [])
             lookahead_tree = SparseTree(root_node, None)
-            self.__grow_sparse_tree(lookahead_tree, t)
-            self.__eval_sparse_tree(lookahead_tree, t)
+            specials = []
+            for i in range(-1, self.horizon+2):
+                specials_t = []
+                self.__predict_specials(specials_t, t + i)
+                specials.append(set(specials_t))
+            self.__grow_sparse_tree(lookahead_tree, specials)
+            self.__eval_sparse_tree(lookahead_tree, specials)
             self.lookahead_tree = lookahead_tree
 
         def __str__(self):
@@ -111,48 +117,57 @@ class SparseTreeEvaluator(object):
 
         def __predict_specials(self, specials, time):
             x_preds, y_preds = self.state_posterior.predict(time)
-            for x in x_preds:
-                for y in y_preds:
-                    specials.append((x, y, "red", self.loss_penalty, "NA"))
+            for x in x_preds[0]:
+                for y in y_preds[0]:
+                    specials.append((int(round(x[0])), int(round(y[0])), "red", self.loss_penalty, "NA"))
 
-        def __grow_sparse_tree(self, lookahead_tree, t):
+        def __grow_sparse_tree(self, lookahead_tree, specials):
             if (lookahead_tree.node.depth >= self.horizon) and (lookahead_tree.node.type == NodeType.Decision):
                 # leaves of sparse tree should be outcome nodes
                 return
 
             if lookahead_tree.node.type == NodeType.Decision:
-                specials = []
-                self.__predict_specials(specials, t)
-                self.__predict_specials(specials, t - 1)
-                self.__predict_specials(specials, t + 1)
-                specials.append((
+                specials_t = list(set(specials[lookahead_tree.node.depth]) |
+                                  set(specials[lookahead_tree.node.depth + 1]) |
+                                  set(specials[lookahead_tree.node.depth + 2]))
+                specials_t.append((
                                 self.goal_state[0], self.goal_state[1], "green",
                                 self.goal_reward, "NA"))
                 statics = self.state_posterior.get_static_states()
+                # if we are at root node, and asked to evaluate decision tree
+                # we assume that special and tree root cannot overlap
+                # otherwise, there is no tree to construct
+                filtered_specials = specials_t.copy()
+                if lookahead_tree.node.depth == 0:
+                    for idx, (i, j, c, r, v) in enumerate(specials_t):
+                        if lookahead_tree.node.state[0] == i and lookahead_tree.node.state[1] == j:
+                            print("Root at special", (i, j, c, r, v))
+                            self.ignored_specials.append([i, j])
+                            filtered_specials.pop(idx)
                 if lookahead_tree.node.depth == 0 and self.thompson_sampler:
-                    move_pool = self.__get_actions(lookahead_tree, specials, statics, True)
+                    move_pool = self.__get_actions(lookahead_tree, filtered_specials, statics, True)
                     lookahead_tree.actions = move_pool
                 else:
-                    move_pool = self.__get_actions(lookahead_tree, specials, statics, False)
+                    move_pool = self.__get_actions(lookahead_tree, filtered_specials, statics, False)
                     lookahead_tree.actions = move_pool
                 for action in move_pool:
                     orig_state, child_action, child_reward, child_state, _ = \
                         self.simulator.sim(lookahead_tree.node.state, action,
-                                           specials=specials, walls=statics)
+                                           specials=filtered_specials, walls=statics)
                     if list(child_state) == list(orig_state):
                         continue
                     child = SparseTree(SparseTree.Node(NodeType.Outcome, lookahead_tree.node.depth,
                                                        child_state, [child_reward]), lookahead_tree)
                     lookahead_tree.add_child(child)
                     if print_debug: print("Added outcome child depth",  child)
-                    self.__grow_sparse_tree(child, t)
+                    self.__grow_sparse_tree(child, specials)
 
             if lookahead_tree.node.type == NodeType.Outcome:
                 child = SparseTree(SparseTree.Node(NodeType.Decision,
                                                    lookahead_tree.node.depth + 1,
                                                    lookahead_tree.node.state, []), lookahead_tree)
                 lookahead_tree.add_child(child)
-                self.__grow_sparse_tree(child, t+1)
+                self.__grow_sparse_tree(child, specials)
 
         def __eval_sparse_tree(self, lookahead_tree, t):
             for child in lookahead_tree.children:
@@ -175,6 +190,10 @@ class SparseTreeEvaluator(object):
                 if lookahead_tree.node.depth == 0:
                     # set sparse tree root value to
                     # (best_action_index, max_avg_reward_value_discounted)
+                    if len(lookahead_tree.node.value) == 0:
+                        print(lookahead_tree.node.state)
+                        print(lookahead_tree.actions)
+                        print(lookahead_tree.node)
                     max_value = max(lookahead_tree.node.value)
                     max_idxs = [i for i, j in enumerate(lookahead_tree.node.value) if j == max_value]
                     lookahead_tree.node.value = (max_idxs, max_value, [lookahead_tree.node.value])
