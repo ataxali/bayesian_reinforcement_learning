@@ -55,8 +55,14 @@ class GPPosterior:
 
     def __classify_history(self, history, new_state_idx):
         hist_ts = set(map(lambda obs: obs[4], history))
+        hist_vals = set(map(lambda obs: obs[3][new_state_idx], history))
+
         hist_dict = {key: list() for key in hist_ts}
         for obs in history: hist_dict[obs[4]].append(obs[3][new_state_idx])
+
+        hist_dict_vals = {key: list() for key in hist_vals}
+        for obs in history: hist_dict_vals[obs[3][new_state_idx]].append(obs[4])
+
         collisions = max(map(len, map(lambda x: set(x), hist_dict.values())))
         classes = [list() for _ in range(collisions)]
 
@@ -66,12 +72,20 @@ class GPPosterior:
                 classes[0].append((t, obs))
                 return
 
-            last_class_vals = list(map(lambda lst: lst[len(lst) - 1] if lst else None, classes))
-
+            #last_class_vals = list(map(lambda lst: lst[len(lst) - 1] if lst else None, classes))
+            max_class_vals = [max(map(lambda val: val[1], c)) for c in classes]
+            sorted_max_class_vals = list(zip(sorted(range(len(max_class_vals)), key=lambda k: max_class_vals[k]),
+                                        sorted(max_class_vals)))
             # first try to classify to one-off sequence
-            for i, val in enumerate(last_class_vals):
-                if val and abs(val[0] - t) == 1 and abs(val[1] - obs) == 1:
-                    classes[i].append((t, obs))
+            #for i, c in enumerate(classes):
+            #    for val in c:
+            #        if val and abs(val[0] - t) == 1 and abs(val[1] - obs) == 1:
+            #            classes[i].append((t, obs))
+            #            return
+
+            for sort_val in sorted_max_class_vals:
+                if obs <= sort_val[1]:
+                    classes[sort_val[0]].append((t, obs))
                     return
 
             # whoops, rough classification. Need to estimate
@@ -82,32 +96,39 @@ class GPPosterior:
                 if global_constants.print_debug: print(error_message)
 
             # toss into next nearest neighbor, frobenius manhattan distance
-            min_coord_diff = min(last_class_vals, key=lambda x: abs(x[1] - obs))
-            classes[last_class_vals.index(min_coord_diff)].append((t, obs))
+            min_coord_diff = min(sorted_max_class_vals, key=lambda x: abs(x[1] - obs))
+            classes[sorted_max_class_vals.index(min_coord_diff)].append((t, obs))
 
-            info_message = "Classified " + str(obs) + " to class " + str(last_class_vals.index(min_coord_diff))
+            info_message = "Classified " + str(obs) + " to classes " + str(classes)
             if self.log:
                 logger.log(info_message, logger=self.log)
             else:
                 if global_constants.print_debug: print(info_message)
 
         # initialize classes based on time with greatest collisions
+        coll_arr = []
         for t in sorted(hist_dict.keys(), key=int):
             t_obs = hist_dict[t]
             if len(set(t_obs)) == collisions:
-                for i, obs in enumerate(set(t_obs)):
-                    classes[i].append((t, obs))
-                del hist_dict[t]
-                break
+                coll_arr.append((t, max(t_obs) - min(t_obs)))
 
-        for t in sorted(hist_dict.keys(), key=int):
-            unique_obs = set(hist_dict[t])
+        if coll_arr:
+            coll_ranges = list(map(lambda val: val[1], coll_arr))
+            max_range_idx = coll_ranges.index(min(coll_ranges))
+            t_obs = hist_dict[coll_arr[max_range_idx][0]]
+            for i, o in enumerate(sorted(set(t_obs))):
+                classes[i].append((coll_arr[max_range_idx][0], o))
+            del hist_dict[coll_arr[max_range_idx][0]]
+
+        for val in sorted(hist_dict_vals.keys(), key=int):
+            unique_obs = set(hist_dict_vals[val])
             if len(unique_obs) > 1:
                 # the set below doesnt duplicate data
-                for i, obs in enumerate(sorted(set(hist_dict[t]))):
-                    classes[i].append((t, obs))
+                for i, t in enumerate(sorted(set(hist_dict_vals[val]))):
+                    classify_obs(val, t)
+                    #classes[i].append((t, val))
             else:
-                classify_obs(list(unique_obs)[0], t)
+                classify_obs(val, list(unique_obs)[0])
 
         # validate classes
         for i, c in enumerate(classes):

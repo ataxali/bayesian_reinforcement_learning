@@ -33,12 +33,12 @@ def test_world_simulator():
 
 def sparse_tree_tester():
     t0 = time.time()
-    simulator = WorldSimulator(use_cache=True)
+    simulator = WorldSimulator()
     root_state = [0, 4]
     action_set = ["up", "down", "left", "right"]
     print(simulator.get_valid_actions(root_state, action_set, specials=[], walls=[]))
 
-    simulator = WorldSimulator(use_cache=True)
+    simulator = WorldSimulator()
     action_set = ["up", "down", "left", "right"]
     horizon = 6
     branch_factor = 5
@@ -93,7 +93,8 @@ def gp_posterior_tester(log):
     time = 0
     action_set = ["up", "down", "left", "right"]
     orig_specials = world.static_specials.copy()
-    simulator = WorldSimulator(specials=orig_specials, use_cache=False)
+    orig_walls = world.static_walls.copy()
+    simulator = WorldSimulator()
     history_manager = HistoryManager(action_set)
     kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
                             periodicity_bounds=(2, 100),
@@ -148,7 +149,8 @@ def gp_posterior_tester(log):
 
     for i in range(1000):
         next_move = np.random.choice(action_set)
-        state, action, sim_r, sim_n_s = simulator.sim(root_state, next_move)
+        state, action, sim_r, sim_n_s, ns = simulator.sim(root_state, next_move, specials=orig_specials, walls=orig_walls)
+        orig_specials = ns
         if list(sim_n_s) == list(state):
             if state not in gp.static_states:
                 if next_move == "up":
@@ -185,7 +187,7 @@ def gp_posterior_tester(log):
 
 def plot_gp(filename):
     gp = pickle.load(open(filename, "rb"))
-    t = np.atleast_2d(np.linspace(0, 1000, 1000)).T
+    t = np.atleast_2d(np.linspace(0, 500, 500)).T
     x_preds, y_preds = gp.predict(t)
     cmap_x = ['m', 'c', 'k', 'g']
     cmap_y = ['r', 'b', 'y', 'teal']
@@ -217,7 +219,7 @@ def sparse_tree_model_tester():
     loss_penalty = -10
     original_root = root_state.copy()
     horizon = 10
-    episode_length = 2  # number of games before posterior distributions are reset
+    episode_length = 10  # number of games before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     history_manager = HistoryManager(action_set)
     #history_manager = BootstrapHistoryManager(action_set, 0.5)
@@ -232,8 +234,6 @@ def sparse_tree_model_tester():
     discount_factor = 0.5
     ############################
 
-    t0 = time.time()
-    prev_root = None
     simulator = WorldSimulator()
     true_specials = world.static_specials.copy()
     true_walls = world.static_walls.copy()
@@ -246,19 +246,10 @@ def sparse_tree_model_tester():
                             periodicity_bounds=(2, 100),
                             length_scale_bounds=(1, 50))
     gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=None)
-    #gp = pickle.load(open("gp.out", "rb"))
-    #history_manager = pickle.load(open("hm.out", "rb"))
+    #gp = pickle.load(open("gp_ts_es10.out", "rb"))
+    #history_manager = pickle.load(open("hm_ts_es10.out", "rb"))
     #gp.history_manager = history_manager
     #gp.update_posterior()
-
-    def get_specials():
-        x_preds, y_preds = gp.predict(game_move_count)
-        specials = []
-        for x in x_preds:
-            for y in y_preds:
-                specials.append((x, y, "red", loss_penalty, "NA"))
-        specials.append((goal_state[0], goal_state[1], "green", goal_reward, "NA"))
-        return specials
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
         ste = SparseTreeEvaluator(sim, root_s, actions, horizon,
@@ -399,16 +390,16 @@ def launch_belief_world():
 def launch_real_world():
     world.World(init_x=0, init_y=3, input_reader=key_handler)
 
-log = logger.ConsoleLogger()
-key_handler = inputReader.KeyInputHandler(log)
-file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
-t = threading.Thread(target=launch_belief_world)
-t.daemon = True
-t.start()
+#log = logger.ConsoleLogger()
+#key_handler = inputReader.KeyInputHandler(log)
+#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
+#t = threading.Thread(target=launch_belief_world)
+#t.daemon = True
+#t.start()
 
 
-#plot_gp("gp_1k.out")
+#lot_gp("gp.out")
 
 
-#sparse_tree_model_tester()
+sparse_tree_model_tester()
 
