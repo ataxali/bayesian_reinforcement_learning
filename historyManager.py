@@ -15,6 +15,9 @@ class HistoryManager(object):
         self.state_count_dict = dict()
         self.total_rewards = 0
 
+    def get_history(self):
+        return self.history
+
     def get_action_set(self):
         return self.action_set
 
@@ -48,11 +51,30 @@ class HistoryManager(object):
 
 
 class BootstrapHistoryManager(HistoryManager):
-    def __init__(self, actions, batch_prop):
+    def __init__(self, actions, batch_prop, penalty_threshold=-1):
         super(BootstrapHistoryManager, self).__init__(actions)
         self.batch_prop = batch_prop
+        self.penalty_threshold = penalty_threshold
+
+    def get_history(self):
+        history = list(filter(lambda obs: obs[2] < self.penalty_threshold, self.history))
+        if not history:
+            return history
+        bootstrap_sample_size = max(int(round(self.batch_prop * len(history))), 1)
+        bootstrap_idxs = np.random.choice(len(history), bootstrap_sample_size, replace=True)
+        bootstrap_sample = [history[i] for i in bootstrap_idxs]
+        #latest_t = history[len(history)-1][4]
+        multiplier = 2
+        for sample in bootstrap_sample:
+            local_multiplier = multiplier
+            while ((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier)) in history:
+                local_multiplier += 1
+            history.append((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier))
+        return history
 
     def get_action_count_reward_dict(self):
+        raise Exception("Thompson sampler shouldn't be calling bootstrapped history!")
+
         if len(self.history) == 0:
             return dict.fromkeys(self.action_set, (0, 0))
 

@@ -31,7 +31,7 @@ class GPPosterior:
 
     def update_posterior(self, n_restarts=10, a=0.01):
         # each history obs is <orig_state, action, reward, new_state, time>
-        history = list(filter(lambda obs: obs[2] < self.penalty_threshold, self.history_manager.history))
+        history = list(filter(lambda obs: obs[2] < self.penalty_threshold, self.history_manager.get_history()))
         if not len(history): return
         classified_x = self.__classify_history(history, 0)
         classified_y = self.__classify_history(history, 1)
