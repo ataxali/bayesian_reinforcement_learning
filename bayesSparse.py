@@ -142,8 +142,9 @@ class SparseTreeEvaluator(object):
                     for idx, (i, j, c, r, v) in enumerate(specials_t):
                         if lookahead_tree.node.state[0] == i and lookahead_tree.node.state[1] == j:
                             print("Root at special", (i, j, c, r, v))
-                            self.ignored_specials.append([i, j])
-                            filtered_specials.pop(idx)
+                            if not c == "green":
+                                self.ignored_specials.append([i, j])
+                                filtered_specials.pop(idx)
                 if lookahead_tree.node.depth == 0 and self.thompson_sampler:
                     move_pool = self.__get_actions(lookahead_tree, filtered_specials, statics, True)
                     lookahead_tree.actions = move_pool
