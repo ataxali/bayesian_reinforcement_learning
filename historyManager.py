@@ -63,7 +63,7 @@ class BootstrapHistoryManager(HistoryManager):
         bootstrap_sample_size = max(int(round(self.batch_prop * len(history))), 1)
         bootstrap_idxs = np.random.choice(len(history), bootstrap_sample_size, replace=True)
         bootstrap_sample = [history[i] for i in bootstrap_idxs]
-        print("Bootstrap history will add", bootstrap_sample, " samples to ", len(history))
+        print("Bootstrap history will add", len(bootstrap_sample), " samples to ", len(history))
         #latest_t = history[len(history)-1][4]
         multiplier = 2
         for sample in bootstrap_sample:
@@ -71,7 +71,6 @@ class BootstrapHistoryManager(HistoryManager):
             while ((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier)) in history:
                 local_multiplier += 1
             history.append((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier))
-            self.history.append((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier))
         return history
 
     def get_action_count_reward_dict(self):
