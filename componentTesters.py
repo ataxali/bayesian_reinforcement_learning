@@ -186,7 +186,13 @@ def gp_posterior_tester(log):
 
 
 def plot_gp(filename):
-    gp = pickle.load(open(filename, "rb"))
+    gp_orig = pickle.load(open(filename, "rb"))
+    kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
+                            periodicity_bounds=(2, 100),
+                            length_scale_bounds=(1, 50))
+    gp = GPPosterior(history_manager=gp_orig.history_manager, kernel=gp_orig.kernel, log=None)
+    gp.update_posterior()
+    gp.static_states = gp_orig.static_states
     t = np.atleast_2d(np.linspace(0, 500, 500)).T
     x_preds, y_preds = gp.predict(t)
     cmap_x = ['m', 'c', 'k', 'g']
@@ -219,10 +225,11 @@ def sparse_tree_model_tester():
     loss_penalty = -10
     original_root = root_state.copy()
     horizon = 10
-    episode_length = 10  # number of games before posterior distributions are reset
+    episode_length = 1  # number of games before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
-    history_manager = HistoryManager(action_set)
-    #history_manager = BootstrapHistoryManager(action_set, 0.5)
+    episode_move_limit = 100
+    #history_manager = HistoryManager(action_set)
+    history_manager = BootstrapHistoryManager(action_set, 0.25)
     if episode_length:
         ts_history_manager = HistoryManager(action_set)
     else:
@@ -241,15 +248,16 @@ def sparse_tree_model_tester():
     game_move_count = 0
     episode_count = 0
     running_score = 0
-    log = logger.DataLogger("./input.txt", replace=True)
+    log = logger.DataLogger("./input_test_ts.txt", replace=True)
     kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
                             periodicity_bounds=(2, 100),
                             length_scale_bounds=(1, 50))
     gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=None)
-    #gp = pickle.load(open("gp_ts_es10.out", "rb"))
     #history_manager = pickle.load(open("hm_ts_es10.out", "rb"))
-    #gp.history_manager = history_manager
+    #gp_orig = pickle.load(open("gp_ts_es10.out", "rb"))
+    #gp = GPPosterior(history_manager=gp_orig.history_manager, kernel=kernel, log=None)
     #gp.update_posterior()
+    #gp.history_manager = history_manager
 
     def eval_sparse_tree(sim, root_s, actions, horizon, tsampler=None):
         ste = SparseTreeEvaluator(sim, root_s, actions, horizon,
@@ -340,7 +348,7 @@ def sparse_tree_model_tester():
         game_move_count += 1
 
         # check terminal conditions
-        if abs(new_reward) > 1:
+        if abs(new_reward) > 1 or (episode_length and (game_move_count > episode_move_limit)):
             episode_count += 1
             if new_reward > 0:
                 print("Agent Won in ", game_move_count, " moves!")
@@ -348,27 +356,28 @@ def sparse_tree_model_tester():
             print("Restarting game", new_reward, game_move_count)
             root_state = original_root.copy()
             true_specials = world.static_specials.copy()
+            if not (episode_length and (game_move_count > episode_move_limit)):
+                gp.update_posterior()
             game_move_count = 0
             logger.log("reset", logger=log)
-            gp.update_posterior()
             # check if end of training episode
             if episode_length and episode_count >= 1 and episode_count % episode_length == 0:
                 print('>> End of Training Episode <<')
                 ts_history_manager.reset_history()
                 episode_count = 0
 
-        with open('gp.out', 'wb') as output:
+        with open('gp_test_ts_es1_bs.out', 'wb') as output:
             pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
 
         if thompson_sampler:
-            with open('ts.out', 'wb') as output:
+            with open('ts_test_ts_es1_bs.out', 'wb') as output:
                 pickle.dump(thompson_sampler, output, pickle.HIGHEST_PROTOCOL)
 
         if episode_length:
-            with open('ts_hm.out', 'wb') as output:
+            with open('ts_hm_test_ts_es1_bs.out', 'wb') as output:
                 pickle.dump(ts_history_manager, output, pickle.HIGHEST_PROTOCOL)
 
-        with open('hm.out', 'wb') as output:
+        with open('hm_test_ts_es1_bs.out', 'wb') as output:
             pickle.dump(history_manager, output, pickle.HIGHEST_PROTOCOL)
 
         sys.stdout.flush()
@@ -392,13 +401,13 @@ def launch_real_world():
 
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input.txt", key_handler, log)
+#file_tailer = inputReader.FileTailer("./input_test_ts.txt", key_handler, log)
 #t = threading.Thread(target=launch_belief_world)
 #t.daemon = True
 #t.start()
 
 
-#lot_gp("gp.out")
+#plot_gp("gp_test_ts_es1_bs.out")
 
 
 sparse_tree_model_tester()
