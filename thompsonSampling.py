@@ -29,7 +29,8 @@ class ThompsonSampler(object):
         # first we use a beta sample to determine hyper parameter
         # we want to pick a number between 2 and 4, representing number to actions to reduce to
         # when history length > 1/move_weight, we select 3 or 4 moves
-        n_sample_hyper = np.mean(np.random.beta(a=weighted_history, b=1, size=self.num_dirch_samples))
+        n_sample_hyper = np.random.beta(a=weighted_history, b=1, size=1)[0]
+        #n_sample_hyper = np.mean(np.random.beta(a=weighted_history, b=1, size=self.num_dirch_samples))
         # we want to avoid trivial trees, so choose between 2 and 4 moves
         if n_sample_hyper < 1.0/3.0:
             sample_hyper = 2
