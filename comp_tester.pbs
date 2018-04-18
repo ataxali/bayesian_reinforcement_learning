@@ -13,7 +13,7 @@
 #PBS -l nodes=1:ppn=2,walltime=10:00:00,pmem=8GB
 
 ## Where does your program's STDOUT go? (Replace with your uniquemane)
-#PBS -o /home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk
+#PBS -o /home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk/flux_out/
 
 ## Import the shell's environment
 ## This is important if you're using Environment Modules (i.e. module load ...)
@@ -30,6 +30,6 @@
 #PBS -t 1-10
 
 ## Code to be run
-python /home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk/componentTesters.py name=bayes_opt batch_id=${PBS_ARRAYID} move_limit=100 > /home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk/batch_opt${PBS_ARRAYID}_train.txt
+python /home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk/componentTesters.py name=bayes_opt batch_id=${PBS_ARRAYID} move_limit=100 root_path="/home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk/" > /home/ataxali/stats551/Bayesian_Reinforcement_Learning.git/trunk/batch_opt${PBS_ARRAYID}_train.txt
 
 
