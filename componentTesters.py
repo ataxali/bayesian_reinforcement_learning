@@ -374,7 +374,7 @@ def sparse_tree_model_tester(arg_dict):
         game_move_count += 1
 
         if total_move_count == move_limit:
-            with open(root_path + "\\" + test_name + batch_id + '.out', 'wb') as output:
+            with open(root_path + "/" + test_name + batch_id + '.out', 'wb') as output:
                 pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
             return
 
