@@ -372,7 +372,10 @@ def sparse_tree_model_tester(arg_dict):
         total_move_count += 1
         game_move_count += 1
 
-        if total_move_count == move_limit: return
+        if total_move_count == move_limit:
+            with open(test_name + batch_id + '.out', 'wb') as output:
+                pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
+            return
 
         # check terminal conditions
         #if abs(new_reward) > 1 or (episode_length and (game_move_count > episode_move_limit)):
@@ -395,10 +398,9 @@ def sparse_tree_model_tester(arg_dict):
                 ts_history_manager.reset_history()
                 episode_count = 0
 
-        with open(test_name+batch_id+'.out', 'wb') as output:
-            pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
+        sys.stdout.flush()
 
-        #if thompson_sampler:
+                #if thompson_sampler:
         #    with open('ts_test_ts_es1_bs.out', 'wb') as output:
         #        pickle.dump(thompson_sampler, output, pickle.HIGHEST_PROTOCOL)
 
@@ -409,7 +411,6 @@ def sparse_tree_model_tester(arg_dict):
         #with open('hm_test_ts_es1_bs.out', 'wb') as output:
         #    pickle.dump(history_manager, output, pickle.HIGHEST_PROTOCOL)
 
-        sys.stdout.flush()
 
 #############
 # gp tester #
@@ -443,6 +444,7 @@ args = sys.argv
 for arg in args:
     if "=" in arg:
         arg_dict[arg.split("=")[0]] = arg.split("=")[1]
+        
 sparse_tree_model_tester(arg_dict)
 
 
