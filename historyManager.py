@@ -68,7 +68,7 @@ class BootstrapHistoryManager(HistoryManager):
         multiplier = 2
         for sample in bootstrap_sample:
             local_multiplier = multiplier
-            while ((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier)) in history:
+            while ((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier) in history):
                 local_multiplier += 1
             history.append((sample[0], sample[1], sample[2], sample[3], sample[4]*local_multiplier))
         return history

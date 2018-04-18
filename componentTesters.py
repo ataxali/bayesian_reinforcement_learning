@@ -186,17 +186,17 @@ def gp_posterior_tester(log):
 
 
 def plot_gp(filename):
-    gp_orig = pickle.load(open(filename, "rb"))
-    kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
-                            periodicity_bounds=(2, 100),
-                            length_scale_bounds=(1, 50))
-    gp = GPPosterior(history_manager=gp_orig.history_manager, kernel=gp_orig.kernel, log=None)
-    gp.update_posterior()
-    gp.static_states = gp_orig.static_states
-    t = np.atleast_2d(np.linspace(0, 500, 500)).T
+    gp = pickle.load(open(filename, "rb"))
+    kernel = ExpSineSquared(length_scale=2, periodicity=3.0,
+                            periodicity_bounds=(2, 10),
+                            length_scale_bounds=(1, 10))
+    #gp = GPPosterior(history_manager=gp_orig.history_manager, kernel=gp_orig.kernel, log=None)
+    #gp.update_posterior()
+    #gp.static_states = gp_orig.static_states
+    t = np.atleast_2d(np.linspace(0, 50, 50)).T
     x_preds, y_preds = gp.predict(t)
     cmap_x = ['m', 'c', 'k', 'g']
-    cmap_y = ['r', 'b', 'y', 'teal']
+    cmap_y = ['r', 'b', 'y', 'k']
     total_x_obs = 0
     total_y_obs = 0
     for obs in gp.x_obs:
@@ -205,19 +205,24 @@ def plot_gp(filename):
         total_y_obs += len(obs)
     print(">>> There are " + str(len(x_preds[0])) + " X gaussian procs for " + str(total_x_obs) + " obs <<<")
     print(">>> There are " + str(len(y_preds[0])) + " Y gaussian procs for " + str(total_y_obs) + " obs <<<")
-    for i, preds in enumerate(x_preds[0]):
-        plt.plot(t, preds, cmap_x[i]+":", label='x_predictions')
-        plt.plot(list(map(lambda x: x[0], gp.x_obs[i])),
-                 list(map(lambda x: x[1], gp.x_obs[i])), cmap_x[i]+"*", markersize=10)
+    #for i, preds in enumerate(x_preds[0]):
+    #    plt.plot(t, preds, cmap_x[i]+":", label='x_predictions')
+    #    plt.plot(list(map(lambda x: x[0], gp.x_obs[i])),
+    #             list(map(lambda x: x[1], gp.x_obs[i])), cmap_x[i]+"*", markersize=10)
+    #    plt.fill(np.concatenate([t, t[::-1]]), np.concatenate([preds - 1.9600 * x_preds[1][i],
+    #                                                           (preds + 1.9600 * x_preds[1][i])[::-1]]),
+    #             alpha=.25, fc='k', ec='None', label='95% confidence interval')
     for i, preds in enumerate(y_preds[0]):
         plt.plot(t, preds, cmap_y[i]+":", label='y_predictions')
         plt.plot(list(map(lambda y: y[0], gp.y_obs[i])),
                  list(map(lambda y: y[1], gp.y_obs[i])), cmap_y[i]+"*", markersize=10)
-        plt.xlim(0, 100)
+        plt.fill(np.concatenate([t, t[::-1]]), np.concatenate([preds - 1.9600 * y_preds[1][i],
+                                                               (preds + 1.9600 * y_preds[1][i])[::-1]]),
+                 alpha=.25, fc='k', ec='None', label='95% confidence interval')
     plt.show(block=True)
 
 
-def sparse_tree_model_tester():
+def sparse_tree_model_tester(arg_dict):
     ###### Model Variables #####
     root_state = [0, 3]
     goal_state = [9, 6]
@@ -225,22 +230,32 @@ def sparse_tree_model_tester():
     loss_penalty = -10
     original_root = root_state.copy()
     horizon = 10
-    episode_length = 1  # number of games before posterior distributions are reset
+    if 'ep_len' in arg_dict and int(arg_dict['ep_len']):
+        print("Setting episode length:", arg_dict['ep_len'], "...")
+        episode_length = int(arg_dict['ep_len'])
+    else:
+        episode_length = 0  # number of games before posterior distributions are reset
     action_set = ["up", "down", "left", "right"]
     episode_move_limit = 100
-    #history_manager = HistoryManager(action_set)
-    history_manager = BootstrapHistoryManager(action_set, 0.25)
+    history_manager = HistoryManager(action_set)
+    if 'bootstrap' in arg_dict:
+        print("Setting history manager to Bootstrapped...")
+        history_manager = BootstrapHistoryManager(action_set, 0.25)
     if episode_length:
         ts_history_manager = HistoryManager(action_set)
     else:
         ts_history_manager = history_manager
-    thompson_sampler = ThompsonSampler(ts_history_manager, use_constant_boundary=0.5,
-                                       move_weight=0.05, move_discount=0.5,
-                                       num_dirch_samples=100)
-    #thompson_sampler = None
+    thompson_sampler = None
+    if 'prune' in arg_dict:
+        print("Creating thompson sampler...")
+        thompson_sampler = ThompsonSampler(ts_history_manager, use_constant_boundary=0.5,
+                                           move_weight=0.001, move_discount=0.5,
+                                           num_dirch_samples=100)
     discount_factor = 0.5
     ############################
-
+    batch_id = arg_dict['batch_id']
+    test_name = arg_dict['name']
+    move_limit = arg_dict['move_limit']
     simulator = WorldSimulator()
     true_specials = world.static_specials.copy()
     true_walls = world.static_walls.copy()
@@ -248,13 +263,23 @@ def sparse_tree_model_tester():
     game_move_count = 0
     episode_count = 0
     running_score = 0
-    log = logger.DataLogger("./input_test_ts.txt", replace=True)
-    kernel = ExpSineSquared(length_scale=1, periodicity=1.0,
-                            periodicity_bounds=(2, 100),
-                            length_scale_bounds=(1, 50))
+    log = None
+    #log = logger.DataLogger("./input_test_ts_es1.txt", replace=True)
+    kernel = ExpSineSquared(length_scale=2, periodicity=3.0,
+                            periodicity_bounds=(2, 10),
+                            length_scale_bounds=(1, 10))
     gp = GPPosterior(history_manager=history_manager, kernel=kernel, log=None)
+    ############################
+    # used for testing purposes
+    ############################
+    # gp = pickle.load(open("gp_ts_new2.out", "rb"))
     #history_manager = pickle.load(open("hm_ts_es10.out", "rb"))
-    #gp_orig = pickle.load(open("gp_ts_es10.out", "rb"))
+    #history_manager.history = gp.history_manager.history
+    #history_manager.action_count_reward_dict = gp.history_manager.action_count_reward_dict
+    #history_manager.state_count_dict = gp.history_manager.state_count_dict
+    #history_manager.total_rewards = gp.history_manager.total_rewards
+    #history_manager.action_set = gp.history_manager.action_set
+    #history_manager = gp.history_manager
     #gp = GPPosterior(history_manager=gp_orig.history_manager, kernel=kernel, log=None)
     #gp.update_posterior()
     #gp.history_manager = history_manager
@@ -347,8 +372,11 @@ def sparse_tree_model_tester():
         total_move_count += 1
         game_move_count += 1
 
+        if total_move_count == move_limit: return
+
         # check terminal conditions
-        if abs(new_reward) > 1 or (episode_length and (game_move_count > episode_move_limit)):
+        #if abs(new_reward) > 1 or (episode_length and (game_move_count > episode_move_limit)):
+        if abs(new_reward) > 1 or (game_move_count > episode_move_limit):
             episode_count += 1
             if new_reward > 0:
                 print("Agent Won in ", game_move_count, " moves!")
@@ -356,29 +384,30 @@ def sparse_tree_model_tester():
             print("Restarting game", new_reward, game_move_count)
             root_state = original_root.copy()
             true_specials = world.static_specials.copy()
-            if not (episode_length and (game_move_count > episode_move_limit)):
+            #if not (episode_length and (game_move_count > episode_move_limit)):
+            if not (game_move_count > episode_move_limit):
                 gp.update_posterior()
             game_move_count = 0
             logger.log("reset", logger=log)
             # check if end of training episode
             if episode_length and episode_count >= 1 and episode_count % episode_length == 0:
-                print('>> End of Training Episode <<')
+                print('>> End of Episode <<')
                 ts_history_manager.reset_history()
                 episode_count = 0
 
-        with open('gp_test_ts_es1_bs.out', 'wb') as output:
+        with open(test_name+batch_id+'.out', 'wb') as output:
             pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
 
-        if thompson_sampler:
-            with open('ts_test_ts_es1_bs.out', 'wb') as output:
-                pickle.dump(thompson_sampler, output, pickle.HIGHEST_PROTOCOL)
+        #if thompson_sampler:
+        #    with open('ts_test_ts_es1_bs.out', 'wb') as output:
+        #        pickle.dump(thompson_sampler, output, pickle.HIGHEST_PROTOCOL)
 
-        if episode_length:
-            with open('ts_hm_test_ts_es1_bs.out', 'wb') as output:
-                pickle.dump(ts_history_manager, output, pickle.HIGHEST_PROTOCOL)
+        #if episode_length:
+        #    with open('ts_hm_test_ts_es1_bs.out', 'wb') as output:
+        #        pickle.dump(ts_history_manager, output, pickle.HIGHEST_PROTOCOL)
 
-        with open('hm_test_ts_es1_bs.out', 'wb') as output:
-            pickle.dump(history_manager, output, pickle.HIGHEST_PROTOCOL)
+        #with open('hm_test_ts_es1_bs.out', 'wb') as output:
+        #    pickle.dump(history_manager, output, pickle.HIGHEST_PROTOCOL)
 
         sys.stdout.flush()
 
@@ -393,22 +422,27 @@ def sparse_tree_model_tester():
 # move re-player #
 ##################
 def launch_belief_world():
-    world.World(init_x=0, init_y=3, input_reader=key_handler, specials=[(9, 6, "green", 10, "NA")],
+    world.World(init_x=0, init_y=6, input_reader=key_handler, specials=[(9, 0, "green", 10, "NA")],
          do_belief=True, walls=[])
 
 def launch_real_world():
-    world.World(init_x=0, init_y=3, input_reader=key_handler)
+    world.World(init_x=0, init_y=6, input_reader=key_handler)
 
 #log = logger.ConsoleLogger()
 #key_handler = inputReader.KeyInputHandler(log)
-#file_tailer = inputReader.FileTailer("./input_test_ts.txt", key_handler, log)
+#file_tailer = inputReader.FileTailer("./complete_models/input_test_ts_es1.txt", key_handler, log)
 #t = threading.Thread(target=launch_belief_world)
 #t.daemon = True
 #t.start()
 
 
-#plot_gp("gp_test_ts_es1_bs.out")
+#plot_gp("gp_ts_es1_bs_new2.out")
 
+arg_dict = dict()
+args = sys.argv
+for arg in args:
+    if "=" in arg:
+        arg_dict[arg.split("=")[0]] = arg.split("=")[1]
+sparse_tree_model_tester(arg_dict)
 
-sparse_tree_model_tester()
 
