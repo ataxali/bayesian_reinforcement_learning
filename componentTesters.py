@@ -255,7 +255,7 @@ def sparse_tree_model_tester(arg_dict):
     ############################
     batch_id = arg_dict['batch_id']
     test_name = arg_dict['name']
-    move_limit = arg_dict['move_limit']
+    move_limit = int(arg_dict['move_limit'])
     simulator = WorldSimulator()
     true_specials = world.static_specials.copy()
     true_walls = world.static_walls.copy()
