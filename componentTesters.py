@@ -256,6 +256,7 @@ def sparse_tree_model_tester(arg_dict):
     batch_id = arg_dict['batch_id']
     test_name = arg_dict['name']
     move_limit = int(arg_dict['move_limit'])
+    root_path = arg_dict['root_path']
     simulator = WorldSimulator()
     true_specials = world.static_specials.copy()
     true_walls = world.static_walls.copy()
@@ -373,7 +374,7 @@ def sparse_tree_model_tester(arg_dict):
         game_move_count += 1
 
         if total_move_count == move_limit:
-            with open(test_name + batch_id + '.out', 'wb') as output:
+            with open(root_path + "\\" + test_name + batch_id + '.out', 'wb') as output:
                 pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
             return
 
@@ -444,7 +445,7 @@ args = sys.argv
 for arg in args:
     if "=" in arg:
         arg_dict[arg.split("=")[0]] = arg.split("=")[1]
-        
+
 sparse_tree_model_tester(arg_dict)
 
 
