@@ -60,7 +60,9 @@ class BootstrapHistoryManager(HistoryManager):
         history = list(filter(lambda obs: obs[2] < self.penalty_threshold, self.history))
         if not history:
             return history
-        bootstrap_sample_size = max(int(round(self.batch_prop * len(history))), 1)
+        bootstrap_sample_size = max(int(round(self.batch_prop * len(history))), 0)
+        if not bootstrap_sample_size:
+            return history
         bootstrap_idxs = np.random.choice(len(history), bootstrap_sample_size, replace=True)
         bootstrap_sample = [history[i] for i in bootstrap_idxs]
         print("Bootstrap history will add", len(bootstrap_sample), " samples to ", len(history))
