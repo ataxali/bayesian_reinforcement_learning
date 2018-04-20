@@ -247,9 +247,13 @@ def sparse_tree_model_tester(arg_dict):
         ts_history_manager = history_manager
     thompson_sampler = None
     if 'prune' in arg_dict:
-        print("Creating thompson sampler...")
+        move_wght = float(arg_dict['move_weight'])
+        if not move_wght:
+            raise Exception("Cannot start thompson sampler without move weight!")
+        print("Creating thompson sampler, with move weight", move_wght, "...")
+        
         thompson_sampler = ThompsonSampler(ts_history_manager, use_constant_boundary=0.5,
-                                           move_weight=0.001, move_discount=0.5,
+                                           move_weight=move_wght, move_discount=0.5,
                                            num_dirch_samples=100)
     discount_factor = 0.5
     ############################
@@ -438,7 +442,7 @@ def launch_real_world():
 #t.start()
 
 
-#plot_gp("gp_ts_es1_bs_new2.out")
+plot_gp("bayes_opt4.out.")
 
 arg_dict = dict()
 args = sys.argv
