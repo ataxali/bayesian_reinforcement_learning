@@ -266,6 +266,8 @@ def sparse_tree_model_tester(arg_dict):
 
     def new_goal_state():
         new_y = random.randint(0, 6)
+        while new_y == 5:
+            new_y = random.randint(0, 6)
         nonlocal goal_state
         goal_state = [9, new_y]
         print(">> New Goal State:", goal_state, "<<")
