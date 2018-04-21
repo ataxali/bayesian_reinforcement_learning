@@ -14,6 +14,7 @@ from sklearn.gaussian_process.kernels import ExpSineSquared
 from matplotlib import pyplot as plt, colors
 import pickle
 import sys
+import os
 
 
 terminal_state_win = [world.static_specials[2][0], world.static_specials[2][1]]
@@ -256,6 +257,23 @@ def sparse_tree_model_tester(arg_dict):
                                            move_weight=move_wght, move_discount=0.5,
                                            num_dirch_samples=100)
     discount_factor = 0.5
+    is_testing = False
+    if arg_dict["testing_file"]:
+        is_testing = True
+
+    def update_world_root(new_root):
+        world.static_specials[4] = (new_root[0], new_root[1], "green", 10, "NA")
+
+    def new_goal_state():
+        new_y = random.randint(0, 6)
+        goal_state = [9, new_y]
+        print(">> New Goal State:", goal_state, "<<")
+        update_world_root(goal_state)
+
+    if is_testing:
+        new_goal_state()
+
+
     ############################
     batch_id = arg_dict['batch_id']
     test_name = arg_dict['name']
@@ -269,7 +287,7 @@ def sparse_tree_model_tester(arg_dict):
     episode_count = 0
     running_score = 0
     log = None
-    #log = logger.DataLogger("./input_test_ts_es1.txt", replace=True)
+    #log = logger.DataLogger(root_path + "\\" + "testing_" + test_name + ".txt", replace=True)
     kernel = ExpSineSquared(length_scale=2, periodicity=3.0,
                             periodicity_bounds=(2, 10),
                             length_scale_bounds=(1, 10))
@@ -277,7 +295,14 @@ def sparse_tree_model_tester(arg_dict):
     ############################
     # used for testing purposes
     ############################
-    # gp = pickle.load(open("gp_ts_new2.out", "rb"))
+    if is_testing:
+        gp = pickle.load(open(arg_dict["testing_file"], "rb"))
+        history_manager.history = gp.history_manager.history
+        history_manager.action_count_reward_dict = gp.history_manager.action_count_reward_dict
+        history_manager.state_count_dict = gp.history_manager.state_count_dict
+        history_manager.total_rewards = gp.history_manager.total_rewards
+        history_manager.action_set = gp.history_manager.action_set
+        print(">> Loaded trained model from," + arg_dict["testing_file"] + "<<")
     #history_manager = pickle.load(open("hm_ts_es10.out", "rb"))
     #history_manager.history = gp.history_manager.history
     #history_manager.action_count_reward_dict = gp.history_manager.action_count_reward_dict
@@ -377,7 +402,7 @@ def sparse_tree_model_tester(arg_dict):
         total_move_count += 1
         game_move_count += 1
 
-        if total_move_count == move_limit:
+        if total_move_count == move_limit and not is_testing:
             with open(root_path + "/" + test_name + batch_id + '.out', 'wb') as output:
                 pickle.dump(gp, output, pickle.HIGHEST_PROTOCOL)
             return
@@ -390,6 +415,8 @@ def sparse_tree_model_tester(arg_dict):
                 print("Agent Won in ", game_move_count, " moves!")
                 sys.stdout.flush()
             print("Restarting game", new_reward, game_move_count)
+            if is_testing:
+                new_goal_state()
             root_state = original_root.copy()
             true_specials = world.static_specials.copy()
             #if not (episode_length and (game_move_count > episode_move_limit)):
@@ -450,6 +477,9 @@ for arg in args:
     if "=" in arg:
         arg_dict[arg.split("=")[0]] = arg.split("=")[1]
 
-sparse_tree_model_tester(arg_dict)
-
-
+if arg_dict["testing"]:
+    for filename in os.listdir(arg_dict["testing"]+"\\"):
+        arg_dict["testing_file"] = arg_dict["testing"] + "\\" +filename
+        sparse_tree_model_tester(arg_dict)
+else:
+    sparse_tree_model_tester(arg_dict)
