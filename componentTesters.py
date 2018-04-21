@@ -251,7 +251,7 @@ def sparse_tree_model_tester(arg_dict):
         if not move_wght:
             raise Exception("Cannot start thompson sampler without move weight!")
         print("Creating thompson sampler, with move weight", move_wght, "...")
-        
+
         thompson_sampler = ThompsonSampler(ts_history_manager, use_constant_boundary=0.5,
                                            move_weight=move_wght, move_discount=0.5,
                                            num_dirch_samples=100)
@@ -442,7 +442,7 @@ def launch_real_world():
 #t.start()
 
 
-plot_gp("bayes_opt4.out.")
+# plot_gp("bayes_opt4.out.")
 
 arg_dict = dict()
 args = sys.argv
