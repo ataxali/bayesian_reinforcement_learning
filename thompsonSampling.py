@@ -24,12 +24,12 @@ class ThompsonSampler(object):
         action_psuedo_counts = self.history_manager.get_action_count_reward_dict()
         move_counts = list(map(lambda x: action_psuedo_counts[x][0], action_set))
         history_len = max(sum(move_counts), 1)
-        weighted_history = float(history_len * self.move_weight)
+        #weighted_history = float(history_len * self.move_weight)
 
         # first we use a beta sample to determine hyper parameter
         # we want to pick a number between 2 and 4, representing number to actions to reduce to
         # when history length > 1/move_weight, we select 3 or 4 moves
-        n_sample_hyper = np.random.beta(a=weighted_history, b=1, size=1)[0]
+        n_sample_hyper = np.random.beta(a=history_len, b=self.move_weight, size=1)[0]
         #n_sample_hyper = np.mean(np.random.beta(a=weighted_history, b=1, size=self.num_dirch_samples))
         # we want to avoid trivial trees, so choose between 2 and 4 moves
         if n_sample_hyper < 1.0/3.0:

@@ -131,7 +131,7 @@ class SparseTreeEvaluator(object):
                                   set(specials[lookahead_tree.node.depth + 1]) |
                                   set(specials[lookahead_tree.node.depth + 2]))
                 specials_t.append((
-                                self.goal_state[0], self.goal_state[1], "green",
+                                    self.goal_state[0], self.goal_state[1], "green",
                                 self.goal_reward, "NA"))
                 statics = self.state_posterior.get_static_states()
                 # if we are at root node, and asked to evaluate decision tree

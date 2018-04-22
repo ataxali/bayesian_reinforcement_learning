@@ -37,7 +37,7 @@ def sparse_tree_model_tester(arg_dict):
         ts_history_manager = history_manager
     thompson_sampler = None
     if 'prune' in arg_dict:
-        move_wght = float(arg_dict['move_weight'])
+        move_wght = float(arg_dict['ts_hyper_param'])
         if not move_wght:
             raise Exception("Cannot start thompson sampler without move weight!")
         print("Creating thompson sampler, with move weight", move_wght, "...")
@@ -47,7 +47,7 @@ def sparse_tree_model_tester(arg_dict):
                                            num_dirch_samples=100)
     discount_factor = 0.5
     is_testing = False
-    if arg_dict["testing_file"]:
+    if "testing_file" in arg_dict:
         is_testing = True
 
     def update_world_root(new_root):
@@ -234,7 +234,7 @@ for arg in args:
     if "=" in arg:
         arg_dict[arg.split("=")[0]] = arg.split("=")[1]
 
-if arg_dict["testing"]:
+if 'testing' in  arg_dict:
     for filename in os.listdir(arg_dict["testing"]+"\\"):
         arg_dict["testing_file"] = arg_dict["testing"] + "\\" +filename
         sparse_tree_model_tester(arg_dict)
