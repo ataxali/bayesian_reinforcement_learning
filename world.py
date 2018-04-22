@@ -326,21 +326,6 @@ class World(object):
         new_y = self.player[1] + dy
         self.score += self.walk_reward
         if (new_x >= 0) and (new_x < self.x) and (new_y >= 0) and (new_y < self.y) and not ((new_x, new_y) in self.walls):
-            # if self.do_render:
-            #     for (i, j, c, w, v) in old_specials:
-            #         if c == "red":
-            #             self.board.create_rectangle(i * self.Width, j * self.Width,
-            #                                         (i + 1) * self.Width,
-            #                                         (j + 1) * self.Width, fill='white',
-            #                                         width=1)
-            #     self.board.coords(self.me, new_x*self.Width+self.Width*2/10, new_y*self.Width+self.Width*2/10,
-            #                   new_x*self.Width+self.Width*8/10, new_y*self.Width+self.Width*8/10)
-            #     self.board.tag_raise(self.me)
-            #     for (i, j, c, w, v) in self.specials:
-            #         self.board.create_rectangle(i * self.Width, j * self.Width,
-            #                                     (i + 1) * self.Width,
-            #                                     (j + 1) * self.Width, fill=c,
-            #                                     width=1)
             self.player = (new_x, new_y)
 
         if self.do_render:
