@@ -1,6 +1,6 @@
 # Bayesian Reinforcement Learning
 
-### Final Project for Stats 551
+### Final Project for Stats 551 - Winter 2018
 ### by: Aman Taxali and Ray Lee
 
 
