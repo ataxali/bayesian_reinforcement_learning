@@ -78,7 +78,6 @@ def sparse_tree_model_tester(arg_dict):
     episode_count = 0
     running_score = 0
     log = None
-    #log = logger.DataLogger(root_path + "\\" + "testing_" + test_name + ".txt", replace=True)
     kernel = ExpSineSquared(length_scale=2, periodicity=3.0,
                             periodicity_bounds=(2, 10),
                             length_scale_bounds=(1, 10))
@@ -213,6 +212,21 @@ def sparse_tree_model_tester(arg_dict):
 
         sys.stdout.flush()
 
+###############################
+# Required script parameters  #
+###############################
+# name (string)
+# batch_id (int)
+# move_limit (int)
+# root_path (directory path)
+
+###############################
+# Optional script parameters  #
+###############################
+# prune (T/F)
+# bootstrap (T/F)
+# ep_len (int)
+# testing (directory path)
 
 arg_dict = dict()
 args = sys.argv
