@@ -3,14 +3,14 @@
 ### Final Project for Stats 551 - Winter 2018
 ### by: Aman Taxali and Ray Lee
 
-
+[Final Report](./Taxali_Lee_Final_Report.pdf)
 [Presentation Slides](./ataxali_final_presentation.pdf)
 
-Additional Comments
+#### Running the code
 
-Running our code
 To run our code, please copy all .py files into a directory. Then inside that directory, run:
     python main.py batch_id=1 name=sparse_sampling move_limit=100 root_path="./"
+
 Dependencies: Python 3, scikit-learn 0.19.1
 
 More about the script parameters:
