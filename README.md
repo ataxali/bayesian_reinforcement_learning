@@ -1,7 +1,13 @@
 # Bayesian Reinforcement Learning
 
-### Final Project for Stats 551 - Winter 2018
-### by: Aman Taxali and Ray Lee
+Aman Taxali and Ray Lee
+
+### Motivation 
+
+In this project, we explain a general Bayesian strategy for approximating optimal actions in Partially Observable
+Markov Decision Processes, known as sparse sampling. Our experimental results confirm the greedy-optimal behavior of this methodology. We also explore ways of augmenting the sparse sampling algorithm by introducing additional exploration conditions. Our experimental results show that this approach yields a more robust model.
+
+### Results and Discussion
 
 [Final Report](./Taxali_Lee_Final_Report.pdf)
 
@@ -9,7 +15,7 @@
 
 #### Running the code
 
-To run our code, please copy all .py files into a directory. Then inside that directory, run:
+To run our code, please copy all .py files into a directory. Then, within that directory, run:
     
     python main.py batch_id=1 name=sparse_sampling move_limit=100 root_path="./"
 
