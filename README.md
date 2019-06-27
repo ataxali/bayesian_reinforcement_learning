@@ -1,6 +1,6 @@
 # Bayesian Reinforcement Learning
 
-Aman Taxali and Ray Lee
+Aman Taxali, Ray Lee
 
 ### Motivation 
 
